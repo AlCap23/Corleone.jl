@@ -140,7 +140,7 @@ end
         @test all(
             [
                 isapprox(
-                        sol_at_shooting_points[i],
+                        sol_at_shooting_points.u[i],
                         getproperty(ps, Symbol("interval_$i")).u0;
                         atol = 1.0e-5,
                     ) for i in 2:4
@@ -230,7 +230,7 @@ layer = MultipleShootingLayer(prob, Tsit5(), shooting_points...; controls = [1 =
     fwd_init = ForwardSolveInitialization()
     ps_fwd, _ = fwd_init(rng, layer)
     @test isempty(ps_fwd.layer_1.u0)
-    @test all([isapprox(sol_at_shooting_points[i], getproperty(ps_fwd, Symbol("layer_$i")).u0, atol=1e-5) for i=2:4])
+    @test all([isapprox(sol_at_shooting_points.u[i], getproperty(ps_fwd, Symbol("layer_$i")).u0, atol=1e-5) for i=2:4])
     matching_constraints = Corleone.get_shooting_constraints(layer)
     sol_fwd, _ = layer(nothing, ps_fwd, st)
     @test norm(matching_constraints(sol_fwd, ps_fwd)) < 1e-8
