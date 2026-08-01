@@ -2,10 +2,10 @@ function Corleone.CorleoneDynamicOptProblem(
         sys::ModelingToolkit.System,
         inits::AbstractVector,
         controls::Pair...;
-        algorithm::Corleone.SciMLBase.AbstractDEAlgorithm,
+        algorithm::SciMLBase.AbstractDEAlgorithm,
         shooting::Union{<:AbstractVector{<:Real}, Nothing} = nothing,
         tspan::Union{Tuple{Real, Real}, Nothing} = nothing,
-        sensealg = ModelingToolkit.SciMLBase.NoAD(),
+        sensealg = SciMLBase.NoAD(),
         kwargs...
     )
     iv = ModelingToolkit.get_iv(sys)
