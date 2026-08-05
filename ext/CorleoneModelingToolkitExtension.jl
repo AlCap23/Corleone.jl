@@ -8,7 +8,7 @@ using ModelingToolkit
 using Corleone.LuxCore
 using Corleone.Random
 using Corleone.DocStringExtensions
-using Corleone.SciMLBase
+using SciMLBase
 
 using ModelingToolkit.Symbolics
 using ModelingToolkit.SymbolicUtils

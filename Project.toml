@@ -1,7 +1,7 @@
 name = "Corleone"
 uuid = "2751e0db-33e9-4374-b36d-b7219e1e6b40"
-version = "0.0.5"
 authors = ["Carl Julius Martensen <carl.martensen@ovgu.de>", "Christoph Plate <christoph.plate@ovgu.de>", "and contributors"]
+version = "0.0.6"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -46,6 +46,7 @@ Optimization = "5"
 OrdinaryDiffEqTsit5 = "1, 2"
 Pkg = "1"
 Random = "1"
+RecursiveArrayTools = "4"
 Reexport = "1.2.2"
 SafeTestsets = "0.1, 1"
 SciMLBase = "2.141.0, 3"
