@@ -47,6 +47,10 @@ export get_timepoints
 export Controls
 export collect_timegrid
 
+export get_bounds, get_lower_bound, get_upper_bound
+export collect_activity_pattern
+export get_parameter_index, get_variable_index
+
 export ShootingInterval
 
 export NoShoot, FixedShoot, AutoBlock

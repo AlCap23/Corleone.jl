@@ -41,5 +41,6 @@ include("trajectory.jl")
 export ControlSymbolCache
 export Trajectory, shooting_constraints, shooting_constraints!
 export minimal_state_values, control_values
+export get_symbolic_container, default_cache
 
 end
