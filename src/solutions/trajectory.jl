@@ -42,7 +42,7 @@ function _state_values(traj::Trajectory{N}, idxs = Colon()) where {N}
 
     segs = map(Base.Fix2(state_values, idxs), traj.segments)
     offset = zero(first(first(segs)))
-    selector = [i ∈ q_idxs for i in idxs]
+    selector = [i ∈ q_idxs for i in eachindex(offset)]
     return reduce(vcat, __accumulate_quadratures(offset, selector, segs))
 end
 
