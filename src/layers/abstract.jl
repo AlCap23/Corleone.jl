@@ -98,7 +98,11 @@ function collect_activity_pattern(timepoints::AbstractVector, x::LuxCore.Abstrac
 end
 
 function collect_activity_pattern(timepoints::AbstractVector, x::NestedLayer, ps, st)
-    return traverse_leaves(Base.Fix1(collect_activity_pattern, timepoints), x, ps, st)
+    # Not Base.Fix1(collect_activity_pattern, timepoints): Fix1's call operator only
+    # accepted a single trailing argument before Julia 1.11, but traverse_leaves calls
+    # its leaf function as f(x, ps, st) — three arguments. Fix1 with >1 trailing arg
+    # has no method on the project's julia = "1.10" compat floor.
+    return traverse_leaves((leaf, ps_leaf, st_leaf) -> collect_activity_pattern(timepoints, leaf, ps_leaf, st_leaf), x, ps, st)
 end
 
 function get_timepoints(x::LuxCore.AbstractLuxLayer, ps, st)
