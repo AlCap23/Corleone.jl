@@ -11,43 +11,16 @@ end
 """
 $(FUNCTIONNAME)(layer, ps, st)
 
-Total number of piecewise-continuity constraints contributed by `layer` (i.e. the
-number of injected breakpoints across all `PiecewiseParameter` children).
-"""
-number_of_shooting_constraints(x::LuxCore.AbstractLuxLayer, ps, st) = 0
-number_of_shooting_constraints(x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T} = number_of_shooting_constraints(getfield(x, only(T)), ps, st)
-function number_of_shooting_constraints(x::LuxCore.AbstractLuxContainerLayer{T}, ps, st) where {T}
-    return sum(T) do ti
-        getter = Base.Fix2(getfield, ti)
-        nested_eval(number_of_shooting_constraints, getter(x), getter(ps), getter(st))
-    end
-end
-"""
-$(FUNCTIONNAME)(layer, ps, st)
-
 Evaluate the continuity constraint contributed by `layer`.
 """
 shooting_constraints(::LuxCore.AbstractLuxLayer, ps, st) = nothing
-shooting_constraints(x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T} = shooting_constraints(getfield(x, only(T)), ps, st)
+shooting_constraints(x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T} = shooting_constraints(getproperty(x, only(T)), ps, st)
 shooting_constraints(x::LuxCore.AbstractLuxContainerLayer{T}, ps, st) where {T} = reduce(
     vcat, map(T) do ti
-        getter = Base.Fix2(getfield, ti)
+        getter = Base.Fix2(getproperty, ti)
         nested_eval(shooting_constraints, getter(x), getter(ps), getter(st))
     end
 )
-
-shooting_constraints!(res, ::LuxCore.AbstractLuxLayer, ps, st) = res
-shooting_constraints!(res, x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T} = shooting_constraints!(res, getfield(x, only(T)), ps, st)
-function shooting_constraints!(res, x::LuxCore.AbstractLuxContainerLayer{T}, ps, st) where {T}
-    n = 0:0
-    for ti in T
-        getter = Base.Fix2(getfield, ti)
-        layer = getter(x)
-        n += 1:number_of_shooting_constraints(layer, getter(ps), getter(st))
-        nested_eval(Base.Fix1(shooting_constraints!, res[n]), layer, getter(ps), getter(st))
-    end
-    return
-end
 
 get_lower_bound(::T, val = -Inf) where {T <: Number} = T(val)
 get_upper_bound(::T, val = Inf) where {T <: Number} = T(val)
@@ -58,19 +31,19 @@ for T in (NamedTuple, AbstractArray, Base.AbstractVecOrTuple)
 end
 
 get_lower_bound(::LuxCore.AbstractLuxLayer, ps, st) = get_lower_bound(ps)
-get_lower_bound(x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T} = get_lower_bound(getfield(x, only(T)), ps, st)
+get_lower_bound(x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T} = get_lower_bound(getproperty(x, only(T)), ps, st)
 function get_lower_bound(x::LuxCore.AbstractLuxContainerLayer{T}, ps, st) where {T}
     return map(T) do name
-        getter = Base.Fix2(getfield, name)
+        getter = Base.Fix2(getproperty, name)
         nested_eval(get_lower_bound, getter(x), getter(ps), getter(st))
     end
 end
 
 get_upper_bound(::LuxCore.AbstractLuxLayer, ps, st) = get_upper_bound(ps)
-get_upper_bound(x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T} = get_upper_bound(getfield(x, only(T)), ps, st)
+get_upper_bound(x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T} = get_upper_bound(getproperty(x, only(T)), ps, st)
 function get_upper_bound(x::LuxCore.AbstractLuxContainerLayer{T}, ps, st) where {T}
     return map(T) do name
-        getter = Base.Fix2(getfield, name)
+        getter = Base.Fix2(getproperty, name)
         nested_eval(get_upper_bound, getter(x), getter(ps), getter(st))
     end
 end
@@ -84,24 +57,23 @@ function collect_activity_pattern(timepoints::AbstractVector, x::LuxCore.Abstrac
 end
 
 function collect_activity_pattern(timepoints::AbstractVector, x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T}
-    return collect_activity_pattern(timepoints, getfield(x, only(T)), ps, st)
+    return collect_activity_pattern(timepoints, getproperty(x, only(T)), ps, st)
 end
 
 function collect_activity_pattern(timepoints::AbstractVector, x::LuxCore.AbstractLuxContainerLayer{T}, ps, st) where {T}
     return map(T) do ti
-        getter = Base.Fix2(getfield, ti)
+        getter = Base.Fix2(getproperty, ti)
         ti => nested_eval((x...) -> collect_activity_pattern(timepoints, x...), getter(x), getter(ps), getter(st))
     end |> NamedTuple
 end
 
 
-# Timed function API
 function get_timepoints(x::LuxCore.AbstractLuxLayer, ps, st)
     return []
 end
 
 function get_timepoints(x::LuxCore.AbstractLuxWrapperLayer{T}, ps, st) where {T}
-    return get_timepoints(getfield(x, only(T)), ps, st)
+    return get_timepoints(getproperty(x, only(T)), ps, st)
 end
 
 function get_timepoints(x::NamedTuple{NAMES}, ps, st) where {NAMES}
@@ -123,7 +95,7 @@ end
 function get_timepoints(x::LuxCore.AbstractLuxContainerLayer{T}, ps, st) where {T}
     tpoints = reduce(
         vcat, map(T) do ti
-            getter = Base.Fix2(getfield, ti)
+            getter = Base.Fix2(getproperty, ti)
             container = getter(x)
             ps_i = getter(ps)
             st_i = getter(st)

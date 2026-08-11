@@ -98,7 +98,7 @@ LuxCore.initialparameters(rng::Random.AbstractRNG, pc::PiecewiseParameter{<:Any,
 LuxCore.initialparameters(::Random.AbstractRNG, pc::PiecewiseParameter{<:Any, Nothing}) = begin
     (; tpoints, parameter_id) = pc
     shape = get_parameter_shape(pc)
-    fill(zeros(eltype(tpoints), shape...), length(tpoints) + 1)
+    [zeros(eltype(tpoints), shape...) for i in Base.OneTo(length(tpoints) + 1)]
 end
 
 LuxCore.parameterlength(pc::PiecewiseParameter) = (length(pc.tpoints) + 1) * max(1, prod(get_parameter_shape(pc)))
@@ -111,7 +111,7 @@ LuxCore.initialstates(::Random.AbstractRNG, pc::PiecewiseParameter) = (;
     cache = nothing,
 )
 
-LuxCore.statelength(::PiecewiseParameter) = length(pc.tpoints) + 4
+LuxCore.statelength(pc::PiecewiseParameter) = length(pc.tpoints) + 4
 
 function collect_activity_pattern(timepoints::AbstractVector, pc::PiecewiseParameter, ps, st)
     (; tpoints) = pc

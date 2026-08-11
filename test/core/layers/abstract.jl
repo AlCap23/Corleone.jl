@@ -46,26 +46,6 @@ end
     @test bounds == (lb_c, ub_c)
 end
 
-@testset "abstract.jl – number_of_shooting_constraints (3-arg) on layer" begin
-    # Generic AbstractLuxLayer 3-arg always returns 0
-    pc = PiecewiseParameter(:u, [0.0, 1.0, 2.0])
-    inject!(pc, 0.5)
-    ps, st = LuxCore.setup(rng, pc)
-    @test number_of_shooting_constraints(pc, ps, st) == 0   # 3-arg generic returns 0
-
-    # Container: Controls with no injected pts → nested NamedTuple result
-    prob = LotkaVolterra.generate()
-    sys = symbolic_container(prob.f)
-    cgrid = collect(LinRange(0.0, 12.0, 4))
-    pc1 = PiecewiseParameter(:u1, copy(cgrid))
-    pc2 = PiecewiseParameter(:u2, copy(cgrid))
-    c = Controls(pc1, pc2; sys = sys)
-    reset!(c)
-    ps, st = LuxCore.setup(rng, c)
-    n = number_of_shooting_constraints(c, ps, st)
-    @test n isa NamedTuple   # nested result from container dispatch
-end
-
 @testset "abstract.jl – shooting_constraints on PiecewiseParameter (3-arg)" begin
     pc = PiecewiseParameter(:u, [0.0, 1.0])
     ps, st = LuxCore.setup(rng, pc)
@@ -106,4 +86,26 @@ end
     ub = Corleone.get_upper_bound(pc, ps, st)
     @test all(x -> x == -3.0, lb)
     @test all(x -> x == 4.0, ub)
+end
+
+@testset "abstract.jl – container traversal works with ComponentArrays ps/st" begin
+    # Regression test: container-level dispatch in abstract.jl must use getproperty
+    # (not getfield) so ComponentArrays.ComponentVector, which only overloads
+    # getproperty, can stand in for the usual NamedTuple ps.
+    using ComponentArrays
+
+    prob = LotkaVolterra.generate()
+    sys = symbolic_container(prob.f)
+    cgrid = collect(LinRange(0.0, 12.0, 4))
+    pc1 = PiecewiseParameter(:u1, copy(cgrid))
+    pc2 = PiecewiseParameter(:u2, copy(cgrid))
+    c = Controls(pc1, pc2; sys = sys)
+    reset!(c)
+    ps, st = LuxCore.setup(rng, c)
+    ps_ca = ComponentArray(ps)
+
+    @test Corleone.get_timepoints(c, ps_ca, st) == Corleone.get_timepoints(c, ps, st)
+    @test Corleone.get_lower_bound(c, ps_ca, st) == Corleone.get_lower_bound(c, ps, st)
+    @test Corleone.get_upper_bound(c, ps_ca, st) == Corleone.get_upper_bound(c, ps, st)
+    @test Corleone.collect_activity_pattern([0.0, 4.0, 8.0, 12.0], c, ps_ca, st) isa NamedTuple
 end

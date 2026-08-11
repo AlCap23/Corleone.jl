@@ -14,7 +14,7 @@ struct FixedShoot{T} <: AbstractAutoShoot
     tpoints::T
 end
 
-function apply_auto_shoot(method::FixedShoot, args...)
+function apply_auto_shoot(method::FixedShoot, activity, timepoints)
     return deepcopy(collect(method.tpoints))
 end
 

@@ -39,10 +39,13 @@ SymbolicIndexingInterface.state_values(traj::Trajectory, idxs) = _state_values(t
 function _state_values(traj::Trajectory{N}, idxs = Colon()) where {N}
     q_idxs = isa(idxs, Colon) ? quadrature_indices(traj.sys) : intersect(quadrature_indices(traj.sys), idxs)
     isempty(q_idxs) && return _aggregate_trim(Base.Fix2(state_values, idxs), traj)
-
     segs = map(Base.Fix2(state_values, idxs), traj.segments)
     offset = zero(first(first(segs)))
-    selector = [i ∈ q_idxs for i in eachindex(offset)]
+    selector = if isa(idxs, Colon)
+        [i ∈ q_idxs for i in eachindex(offset)]
+    else
+        [i ∈ q_idxs for i in idxs]
+    end
     return reduce(vcat, __accumulate_quadratures(offset, selector, segs))
 end
 

@@ -36,8 +36,6 @@ include("shooting_interval.jl")
 
 include("shooting_layer.jl")
 
-include("timed_function.jl")
-
 export PiecewiseParameter
 export inject!, reset!
 export number_of_shooting_constraints
@@ -56,8 +54,5 @@ export ShootingInterval
 export NoShoot, FixedShoot, AutoBlock
 
 export ShootingLayer
-
-export TimedFunction, TimedFunctions
-
 
 #end
