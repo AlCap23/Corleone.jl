@@ -36,11 +36,13 @@ end
     reset!(c)
     ps, st = LuxCore.setup(rng, c)
 
-    # Container layer: get_lower/upper_bound returns nested structure over T=(:controls,)
+    # Container layer: get_lower/upper_bound returns a NamedTuple keyed by T=(:controls,),
+    # matching the same shape as ps/st themselves (via the shared traverse_leaves combinator).
     lb_c = Corleone.get_lower_bound(c, ps, st)
     ub_c = Corleone.get_upper_bound(c, ps, st)
-    @test lb_c isa Tuple   # map over T=(:controls,) returns a 1-tuple
-    @test ub_c isa Tuple
+    @test lb_c isa NamedTuple
+    @test ub_c isa NamedTuple
+    @test haskey(lb_c, :controls) && haskey(ub_c, :controls)
     # get_bounds returns (lb, ub) tuple
     bounds = Corleone.get_bounds(c, ps, st)
     @test bounds == (lb_c, ub_c)
@@ -52,6 +54,27 @@ end
     # PiecewiseParameter has a 3-arg method; with no injected points returns empty
     c = shooting_constraints(pc, ps, st)
     @test isempty(c)
+end
+
+@testset "abstract.jl – shooting_constraints on a Controls container" begin
+    # Regression coverage: container-level shooting_constraints was previously
+    # untested end-to-end (only the PiecewiseParameter leaf method above was).
+    prob = LotkaVolterra.generate()
+    sys = symbolic_container(prob.f)
+    pc1 = PiecewiseParameter(:u1, [0.0, 2.0])
+    pc2 = PiecewiseParameter(:u2, [0.0, 2.0])
+    c = Controls(pc1, pc2; sys = sys)
+    reset!(c)
+
+    # No injected shooting points on either control → no constraints.
+    ps, st = LuxCore.setup(rng, c)
+    @test isempty(shooting_constraints(c, ps, st))
+
+    # Inject a shooting point into u1 only; u2 stays untouched.
+    inject!(pc1, 1.0)
+    ps, st = LuxCore.setup(rng, c)
+    expected = shooting_constraints(pc1, ps.controls.u1, st.controls.u1)
+    @test shooting_constraints(c, ps, st) == expected
 end
 
 @testset "abstract.jl – collect_activity_pattern layer variants" begin

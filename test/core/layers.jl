@@ -12,6 +12,10 @@ include(joinpath(@__FILE__, "..", "..", "helper.jl"))
 
 rng = StableRNG(42)
 
+@testset "traverse_leaves" begin
+    include("layers/traverse_leaves.jl")
+end
+
 @testset "Abstract" begin
     include("layers/abstract.jl")
 end
