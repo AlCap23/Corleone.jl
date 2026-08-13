@@ -40,7 +40,7 @@ run_qa(
                 # Corleone's own internals. The extensions exist to add methods to
                 # these, which is only expressible as a qualified access into the
                 # parent package; they are internal hooks, not user API.
-                :AbstractCorleoneFunctionWrapper, :get_number_of_shooting_constraints,
+                :AbstractCorleoneFunctionWrapper,
                 :retrieve_symbol_cache, :shooting_constraints!, :to_vec,
                 :wrap_functions,
                 # Symbolics/SymbolicUtils term-rewriting internals used to normalize

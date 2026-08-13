@@ -62,6 +62,22 @@ end
 flatten_leaves(x, acc = Any[]) = push!(acc, x)
 
 """
+$(FUNCTIONNAME)(layer)
+
+Total number of shooting continuity constraints `layer` will contribute once solved
+into a `Trajectory`. Computed from `layer`'s own structure alone — i.e. how many
+breakpoints have been injected into its `PiecewiseParameter` children — since the
+injected breakpoints live on the layer itself, not in `ps`/`st`.
+"""
+get_number_of_shooting_constraints(::LuxCore.AbstractLuxLayer) = 0
+get_number_of_shooting_constraints(x::LuxCore.AbstractLuxWrapperLayer{T}) where {T} =
+    get_number_of_shooting_constraints(getproperty(x, only(T)))
+get_number_of_shooting_constraints(x::LuxCore.AbstractLuxContainerLayer{T}) where {T} =
+    sum(get_number_of_shooting_constraints, map(Base.Fix1(getproperty, x), T); init = 0)
+get_number_of_shooting_constraints(x::Union{NamedTuple, Tuple}) =
+    sum(get_number_of_shooting_constraints, x isa NamedTuple ? values(x) : x; init = 0)
+
+"""
 $(FUNCTIONNAME)(layer, ps, st)
 
 Evaluate the continuity constraint contributed by `layer`.

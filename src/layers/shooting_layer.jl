@@ -119,3 +119,16 @@ function (layer::ShootingLayer)(problem::SciMLBase.AbstractDEProblem, ps, st)
     sols = mythreadmap(ensemble_algorithm, Base.Fix2(Solutions.ShootingSegment, sys) ∘ Base.splat(sequential_solve), args)
     return Trajectory(sols, sys), merge(st, (; interval = st_interval))
 end
+
+# Overrides the generic AbstractLuxContainerLayer recursion (which would sum
+# PiecewiseParameter-injected breakpoints across :controls): the constraints a
+# ShootingLayer actually contributes once solved are the state-continuity
+# constraints computed by Solutions.Trajectory.shooting_constraints — one per
+# non-quadrature state, per gap between intervals — independent of which
+# variables happen to be tunable on each ShootingInterval.
+function get_number_of_shooting_constraints(layer::ShootingLayer)
+    n_intervals = length(layer.intervals)
+    n_intervals <= 1 && return 0
+    n_states = length(variable_symbols(layer.sys.sys)) - length(Solutions.quadrature_indices(layer.sys))
+    return (n_intervals - 1) * n_states
+end

@@ -77,6 +77,48 @@ end
     @test shooting_constraints(c, ps, st) == expected
 end
 
+@testset "abstract.jl – get_number_of_shooting_constraints recursion" begin
+    # Leaf: AbstractLuxLayer default is 0; PiecewiseParameter overrides it.
+    @test Corleone.get_number_of_shooting_constraints(PiecewiseParameter(:u, [0.0, 1.0])) == 0
+
+    pc1 = PiecewiseParameter(:u1, [0.0, 2.0])
+    pc2 = PiecewiseParameter(:u2, [0.0, 2.0])
+
+    # ContainerLayer over a NamedTuple of leaves (Controls.controls): sums children.
+    prob = LotkaVolterra.generate()
+    sys = symbolic_container(prob.f)
+    c = Controls(pc1, pc2; sys = sys)
+    inject!(pc1, 1.0)
+    inject!(pc2, 0.5)
+    inject!(pc2, 1.5)
+    @test Corleone.get_number_of_shooting_constraints(c) == 1 + 2
+
+    # ShootingLayer overrides the generic container recursion: what it actually
+    # contributes once solved is state-continuity constraints (one per
+    # non-quadrature state per gap between intervals, per
+    # Solutions.Trajectory.shooting_constraints), independent of any
+    # PiecewiseParameter-injected breakpoints on its controls.
+    single = ShootingLayer(
+        ControlledLotka.generate(), Symbol[], pc1, pc2;
+        algorithm = Tsit5(),
+    )
+    @test Corleone.get_number_of_shooting_constraints(single) == 0
+    inject!(single.controls.controls.u1, 1.0)
+    @test Corleone.get_number_of_shooting_constraints(single) == 0
+
+    multi_prob = ControlledLotka.generate()
+    cgrid = collect(LinRange(0.0, 12.0, 13))
+    pc3 = PiecewiseParameter(:u1, copy(cgrid))
+    pc4 = PiecewiseParameter(:u2, copy(cgrid))
+    multi = ShootingLayer(
+        multi_prob, Symbol[], pc3, pc4;
+        algorithm = Tsit5(), shooting_method = FixedShoot([3.0, 6.0, 9.0]),
+    )
+    ps, st = LuxCore.setup(rng, multi)
+    traj, _ = multi(multi_prob, ps, st)
+    @test Corleone.get_number_of_shooting_constraints(multi) == length(Solutions.shooting_constraints(traj))
+end
+
 @testset "abstract.jl – collect_activity_pattern layer variants" begin
     prob = LotkaVolterra.generate()
     sys = symbolic_container(prob.f)

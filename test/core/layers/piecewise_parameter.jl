@@ -127,10 +127,10 @@ end
     @test length(dict_cache) >= 1
 end
 
-@testset "PiecewiseParameter – number_of_shooting_constraints and shooting_constraints!" begin
+@testset "PiecewiseParameter – get_number_of_shooting_constraints and shooting_constraints!" begin
     pc = PiecewiseParameter(:u, [0.0, 2.0])
     inject!(pc, 1.0)
-    @test number_of_shooting_constraints(pc) == 1
+    @test get_number_of_shooting_constraints(pc) == 1
     ps_vals = [fill(Float64(i), 1) for i in 1:3]
     expected = shooting_constraints(pc, ps_vals, nothing)
     res = similar(expected)

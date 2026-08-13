@@ -38,7 +38,7 @@ include("shooting_layer.jl")
 
 export PiecewiseParameter
 export inject!, reset!
-export number_of_shooting_constraints
+export get_number_of_shooting_constraints
 export shooting_constraints, shooting_constraints!
 export get_timepoints
 

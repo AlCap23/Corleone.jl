@@ -139,7 +139,7 @@ function (pc::PiecewiseParameter)(t::T, ps, st) where {T <: Number}
     return ps[idx], merge(st, (; current_index = idx))
 end
 
-number_of_shooting_constraints(pc::PiecewiseParameter) = size(pc.injected, 1)
+get_number_of_shooting_constraints(pc::PiecewiseParameter) = size(pc.injected, 1)
 
 function shooting_constraints(pc::PiecewiseParameter, ps, st)
     (; injected) = pc
