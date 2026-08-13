@@ -58,8 +58,13 @@ end
 
 # For evaluation
 mythreadmap(::EnsembleSerial, args...) = map(args...)
-mythreadmap(::EnsembleThreads, f, args::NTuple{N}...) where {N} = begin
+mythreadmap(::EnsembleThreads, f, args::Tuple...) = begin
+    # Not NTuple{N}...: N and the tuple eltype T can't both be bound from the
+    # argument types alone (an empty NTuple{0,T} is the same type Tuple{} for any
+    # T), which Aqua's unbound-args check correctly flags. N is unused for dispatch
+    # here, only for reconstructing the output length, so compute it directly.
     res = tmap(f, collect.(args)...)
+    N = length(first(args))
     ntuple(i -> res[i], N)
 end
 mythreadmap(::EnsembleThreads, f, args...) = tmap(f, args...)
