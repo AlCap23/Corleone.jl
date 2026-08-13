@@ -2,7 +2,6 @@ module Corleone
 
 using Reexport
 using DocStringExtensions
-using DispatchDoctor: @stable
 using Random
 using LinearAlgebra
 

@@ -1,5 +1,3 @@
-using SymbolicIndexingInterface: to_dict_or_nothing
-
 """
 $(TYPEDEF)
 

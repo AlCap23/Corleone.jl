@@ -1,5 +1,5 @@
 module CorleoneMakieExtension
-using Corleone.Solutions: ControlSegment, AbstractCompositeSolution, control_indices, quadrature_indices
+using Corleone.Solutions: AbstractCompositeSolution, control_indices, quadrature_indices
 using Makie
 using SymbolicIndexingInterface
 
