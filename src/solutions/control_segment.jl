@@ -33,6 +33,9 @@ function SymbolicIndexingInterface.state_values(seg::ControlSegment, idx)
     return map(Base.Fix2(getindex, idx), state_values(seg))
 end
 
+# Disambiguates against SymbolicIndexingInterface.state_values(arr, ::Colon).
+SymbolicIndexingInterface.state_values(seg::ControlSegment, ::Colon) = state_values(seg)
+
 
 function minimal_state_values(seg::ControlSegment)
     q_idxs = quadrature_indices(seg.sys)

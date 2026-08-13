@@ -35,6 +35,8 @@ SymbolicIndexingInterface.symbolic_container(traj::Trajectory) = traj.sys
 
 SymbolicIndexingInterface.state_values(traj::Trajectory) = _state_values(traj, Colon())
 SymbolicIndexingInterface.state_values(traj::Trajectory, idxs) = _state_values(traj, idxs)
+# Disambiguates against Solutions.state_values(::AbstractCompositeSolution, ::Colon).
+SymbolicIndexingInterface.state_values(traj::Trajectory, ::Colon) = _state_values(traj, Colon())
 
 function _state_values(traj::Trajectory{N}, idxs = Colon()) where {N}
     q_idxs = isa(idxs, Colon) ? quadrature_indices(traj.sys) : intersect(quadrature_indices(traj.sys), idxs)
