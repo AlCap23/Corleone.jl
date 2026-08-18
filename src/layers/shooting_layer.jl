@@ -47,7 +47,7 @@ function ShootingLayer(
     unique!(sort!(shooting_points))
     ics = map(enumerate(zip(shooting_points[1:(end - 1)], shooting_points[2:end]))) do (i, tspan)
         ShootingInterval(
-            problem, i == 1 ? variable_id : variable_symbols(cache), tspan;
+            problem, i == 1 ? variable_id : variable_symbols(cache.sys), tspan;
             get(kwargs, :shooting_intervals, (;))...
         )
     end
