@@ -105,6 +105,10 @@ function SymbolicIndexingInterface.variable_symbols(csys::ControlSymbolCache)
     return union(variable_symbols(csys.sys), keys(csys.controls))
 end
 
+function minimal_variable_symbols(csys::ControlSymbolCache)
+    return setdiff(variable_symbols(csys.sys), csys.quadratures)
+end
+
 function SymbolicIndexingInterface.is_parameter(csys::ControlSymbolCache, sym)
     return !haskey(csys.controls, sym) && is_parameter(csys.sys, sym)
 end

@@ -44,5 +44,6 @@ export Trajectory, shooting_constraints, shooting_constraints!
 export minimal_state_values, control_values
 export get_symbolic_container, default_cache
 export control_indices, quadrature_indices
+export minimal_variable_symbols
 
 end
