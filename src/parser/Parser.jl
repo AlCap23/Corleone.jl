@@ -41,7 +41,6 @@ get_value(x) = x
 
 function collect_leafs!(parser::Parser, term)
     (; sys, variables, parameters) = parser
-    @info term
     if !iscall(term)
         if any(Base.Fix1(isequal, term), parameter_symbols(sys))
             push!(parameters, term)
@@ -50,7 +49,6 @@ function collect_leafs!(parser::Parser, term)
     end
     op = operation(term)
     args = arguments(term)
-    @info op args
     if any(Base.Fix1(isequal, op), keys(variables))
         push!(variables[op], (get_value ∘ only)(args))
     else
