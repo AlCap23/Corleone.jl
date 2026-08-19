@@ -36,6 +36,8 @@ include("shooting_interval.jl")
 
 include("shooting_layer.jl")
 
+include("function.jl")
+
 export PiecewiseParameter
 export inject!, reset!
 export get_number_of_shooting_constraints
@@ -54,5 +56,7 @@ export ShootingInterval
 export NoShoot, FixedShoot, AutoBlock
 
 export ShootingLayer
+
+export DynamicFunctionLayer
 
 #end

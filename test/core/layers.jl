@@ -35,3 +35,7 @@ end
 @testset "ShootingLayer" begin
     include("layers/shooting_layer.jl")
 end
+
+@testset "DynamicFunctionLayer" begin
+    include("layers/functions.jl")
+end

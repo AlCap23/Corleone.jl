@@ -11,7 +11,6 @@ using SciMLBase
 using SciMLStructures
 using SymbolicIndexingInterface
 
-
 using ChainRulesCore
 
 using LuxCore
