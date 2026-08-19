@@ -29,8 +29,11 @@ else
             @safetestset "Solutions" begin
                 include("core/solutions.jl")
             end
-            return @safetestset "Layers" begin
+            @safetestset "Layers" begin
                 include("core/layers.jl")
+            end
+            return @safetestset "Parser" begin
+                include("core/parser.jl")
             end
         end,
         groups = Dict(

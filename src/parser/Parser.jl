@@ -4,7 +4,6 @@ using SymbolicIndexingInterface
 using TermInterface
 using DocStringExtensions
 
-
 struct Parser{S, V, P, I}
     sys::S
     variables::V
@@ -36,7 +35,9 @@ function Base.empty!(parser::Parser)
 end
 
 get_value(x) = x
-get_value(x::ModelingToolkit.SymbolicUtils.BasicSymbolic) = x.val
+# TODO: re-enable once ModelingToolkit support lands (comment on
+# 2026-08-19: leaving unsupported for now, will be added in a future commit)
+# get_value(x::ModelingToolkit.SymbolicUtils.BasicSymbolic) = x.val
 
 function collect_leafs!(parser::Parser, term)
     (; sys, variables, parameters) = parser
@@ -92,12 +93,12 @@ function generate_getter(parser::Parser, x = gensym(:trajectory))
     for v in keys(variables)
         t = variables[v]
         if !isempty(t)
-            getter = Expr(:call, :getindex, x, v)
+            getter = Expr(:call, :getindex, x, QuoteNode(v))
             push!(exprs, :($(v) = $(getter)))
         end
     end
     for p in parameters
-        getter = Expr(:call, :getindex, Expr(:call, :getproperty, x, :ps), p)
+        getter = Expr(:call, :getindex, Expr(:call, :getproperty, x, QuoteNode(:ps)), QuoteNode(p))
         push!(exprs, :($(p) = $(getter)))
     end
     return exprs
@@ -117,7 +118,7 @@ function generate_function(parser::Parser, term)
     return expr_oop, expr_iip
 end
 
-function parse_functions!(parser::Parser, terms...; timepoints = [])
+function (parser::Parser)(terms...; timepoints = [])
     empty!(parser)
     foreach(terms) do term
         collect_leafs!(parser, term)
@@ -127,5 +128,7 @@ function parse_functions!(parser::Parser, terms...; timepoints = [])
         generate_function(parser, term)
     end
 end
+
+export Parser
 
 end

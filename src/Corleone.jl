@@ -26,4 +26,7 @@ include("layers/Layers.jl")
 shooting_constraints(traj::Solutions.Trajectory) = Solutions.shooting_constraints(traj)
 shooting_constraints!(res::AbstractVector, traj::Solutions.Trajectory) = Solutions.shooting_constraints!(res, traj)
 
+include("parser/Parser.jl")
+
+
 end
