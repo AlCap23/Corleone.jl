@@ -102,17 +102,27 @@ function generate_getter(parser::Parser, x = gensym(:trajectory))
     return exprs
 end
 
-function generate_function(parser::Parser, term)
-    body = Expr[]
+function generate_function(parser::Parser, terms::Base.AbstractVecOrTuple)
     arg = gensym(:trajectory)
-    append!(body, generate_getter(parser, arg))
-    push!(body, replace_variables(parser, term))
-    oop_signature = Expr(:call, gensym(:f), arg, :ps, :st)
-    expr_oop = Expr(:function, oop_signature, Expr(:block, body...))
     res = gensym(:res)
-    push!(body, :($(res)[1] = $(last(body))))
+    getter = generate_getter(parser, arg)
+    terms = map(Base.Fix1(replace_variables, parser), terms)
+    outputs = [gensym(:out) for _ in eachindex(terms)]
+    oop_body = deepcopy(getter)
+    iip_body = deepcopy(getter)
+    foreach(enumerate(terms)) do (i, term) 
+        push!(oop_body, :($(outputs[i]) = $(term)))
+        push!(iip_body, :($(res)[$(i)] = $(term)))
+    end
+    push!(oop_body, :(out = reduce(vcat, ($(outputs...),))))
+    push!(oop_body, :(return (out, st)))
+    push!(iip_body, :(return ($(res), st)))
+    oop_signature = Expr(:call, gensym(:f), arg, :ps, :st)
+    expr_oop = Expr(:function, oop_signature, Expr(:block, oop_body...))
+    @info expr_oop
     iip_signature = Expr(:call, gensym(:f), res, arg, :ps, :st)
-    expr_iip = Expr(:function, iip_signature, Expr(:block, body...))
+    expr_iip = Expr(:function, iip_signature, Expr(:block, iip_body...))
+    @info expr_iip
     return expr_oop, expr_iip
 end
 
@@ -122,9 +132,7 @@ function (parser::Parser)(terms...; timepoints = [])
         collect_leafs!(parser, term)
     end
     generate_grid!(parser, timepoints)
-    return map(terms) do term
-        generate_function(parser, term)
-    end
+    generate_function(parser, terms)
 end
 
 export Parser

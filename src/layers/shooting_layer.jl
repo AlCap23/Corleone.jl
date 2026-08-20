@@ -132,3 +132,17 @@ function get_number_of_shooting_constraints(layer::ShootingLayer)
     n_states = length(variable_symbols(layer.sys.sys)) - length(Solutions.quadrature_indices(layer.sys))
     return (n_intervals - 1) * n_states
 end
+
+function collect_timegrid(layer::ShootingLayer, ps, st)
+    (; controls, intervals) = layer 
+    tspans = reduce(vcat, map(intervals) do interval 
+        collect(interval.tspan)
+    end)
+    @info tspans
+    tgrid = collect_timegrid(controls, ps.controls, st.controls, extrema(tspans))
+    @info tgrid
+    append!(tspans, reduce(vcat, map(collect, tgrid)))
+    sort!(tspans)
+    unique!(tspans)
+    tspans
+end

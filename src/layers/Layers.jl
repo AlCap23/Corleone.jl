@@ -38,7 +38,7 @@ include("shooting_layer.jl")
 
 include("function.jl")
 
-include("function_container.jl")
+include("problem.jl")
 
 export PiecewiseParameter
 export inject!, reset!
@@ -61,6 +61,6 @@ export ShootingLayer
 
 export DynamicFunctionLayer
 
-export DynamicFunctions
+export DynamicProblemLayer
 
 #end

@@ -27,5 +27,4 @@ shooting_constraints!(res::AbstractVector, traj::Solutions.Trajectory) = Solutio
 
 include("parser/Parser.jl")
 
-
 end
