@@ -21,7 +21,8 @@ function evaluate_objective(prob::DynamicProblemLayer, x::SciMLBase.AbstractDEPr
     return obj, (; shooting = shooting_st, objective = objective_st, constraints = st.constraints)
 end
 
-evaluate_constraints(::DynamicProblemLayer{<:Any, <:Any, Nothing}, x, ps, st) = nothing, st
+evaluate_constraints(::DynamicProblemLayer{<:ShootingLayer, <:Any, Nothing}, ::SciMLBase.AbstractDEProblem, ps, st) = nothing, st
+evaluate_constraints(::DynamicProblemLayer{<:ShootingLayer, <:Any, Nothing}, ::Tuple{<:Any, <:SciMLBase.AbstractDEProblem}, ps, st) = nothing, st
 
 function evaluate_constraints(prob::DynamicProblemLayer, x::SciMLBase.AbstractDEProblem, ps, st)
     x = remake(x, saveat = st.constraints.saveat)
