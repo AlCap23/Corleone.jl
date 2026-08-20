@@ -39,3 +39,7 @@ end
 @testset "DynamicFunctionLayer" begin
     include("layers/functions.jl")
 end
+
+@testset "DynamicFunctions" begin
+    include("layers/function_container.jl")
+end
