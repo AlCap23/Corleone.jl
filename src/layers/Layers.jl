@@ -38,6 +38,8 @@ include("shooting_layer.jl")
 
 include("function.jl")
 
+include("function_container.jl")
+
 export PiecewiseParameter
 export inject!, reset!
 export get_number_of_shooting_constraints
@@ -58,5 +60,7 @@ export NoShoot, FixedShoot, AutoBlock
 export ShootingLayer
 
 export DynamicFunctionLayer
+
+export DynamicFunctions
 
 #end
