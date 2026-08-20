@@ -40,6 +40,6 @@ end
     include("layers/functions.jl")
 end
 
-@testset "DynamicFunctions" begin
-    include("layers/function_container.jl")
+@testset "DynamicProblemLayer" begin
+    include("layers/problem.jl")
 end
