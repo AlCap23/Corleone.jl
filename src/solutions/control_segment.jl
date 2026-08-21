@@ -50,3 +50,11 @@ SymbolicIndexingInterface.parameter_values(seg::ControlSegment) = begin
 end
 
 SymbolicIndexingInterface.current_time(seg::ControlSegment) = seg.sol.t
+
+function first_state_values(seg::ControlSegment)
+    vcat(seg.sol.u[1],control_values(seg))
+end
+
+function last_state_values(seg::ControlSegment)
+    vcat(seg.sol.u[end],control_values(seg))
+end

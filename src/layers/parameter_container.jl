@@ -79,3 +79,17 @@ function reset!(layer::Controls)
         reset!(control)
     end
 end
+
+function get_shooted_controls(layer::Controls, (t0, tinf)::Tuple)
+    lifted = reduce(vcat, map(layer.controls) do c 
+        (; parameter_id, tpoints, injected) = c 
+        @info tpoints[injected]
+        if (t0 ∈ tpoints[injected])
+            parameter_id
+        else
+            nothing
+        end
+    end) 
+    filter!(!isnothing, lifted)
+    return lifted
+end

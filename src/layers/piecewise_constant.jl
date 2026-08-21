@@ -139,18 +139,6 @@ function (pc::PiecewiseParameter)(t::T, ps, st) where {T <: Number}
     return ps[idx], merge(st, (; current_index = idx))
 end
 
-get_number_of_shooting_constraints(pc::PiecewiseParameter) = size(pc.injected, 1)
-
-function shooting_constraints(pc::PiecewiseParameter, ps, st)
-    (; injected) = pc
-    return ps[injected] .- ps[injected .- 1]
-end
-
-function shooting_constraints!(res::AbstractArray, pc::PiecewiseParameter, ps, st)
-    (; injected) = pc
-    return res .= ps[injected] .- ps[injected .- 1]
-end
-
 function get_timepoints(pc::PiecewiseParameter, ps, st)
     return pc.tpoints
 end

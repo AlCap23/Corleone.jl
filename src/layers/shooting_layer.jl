@@ -37,6 +37,7 @@ function ShootingLayer(
     )
     controlnames = reduce(vcat, map(Base.Fix2(getfield, :parameter_id), controls))
     cache = ControlSymbolCache(problem, collect(controlnames), get(kwargs, :quadratures, []))
+    emptyv = empty(variable_symbols(cache))
     controls = Controls(controls...; sys = something(Solutions.get_symbolic_container(problem.f), Solutions.default_cache(problem)))
     reset!(controls)
     timepoints = get(problem.kwargs, :saveat, eltype(tspan)[])
@@ -47,7 +48,8 @@ function ShootingLayer(
     unique!(sort!(shooting_points))
     ics = map(enumerate(zip(shooting_points[1:(end - 1)], shooting_points[2:end]))) do (i, tspan)
         ShootingInterval(
-            problem, i == 1 ? variable_id : minimal_variable_symbols(cache), tspan;
+            problem, i == 1 ? eltype(emptyv).(variable_id) : minimal_variable_symbols(cache), tspan;
+            controls = i == 1 ? emptyv : get_shooted_controls(controls, tspan),
             get(kwargs, :shooting_intervals, (;))...
         )
     end
@@ -101,6 +103,12 @@ end
 
 in_tspan((ti, _)::Tuple, (t0, tinf)::Tuple) = t0 <= ti < tinf
 
+function solve_segment(args)
+    out = sequential_solve(Base.front(args)...)
+    shooting_vars = Base.last(args)
+    Solutions.ShootingSegment(out, first(args), shooting_vars)
+end
+
 function (layer::ShootingLayer)(problem::SciMLBase.AbstractDEProblem, ps, st)
     (; sys, intervals, controls, algorithm, ensemble_algorithm) = layer
     probs, tgrids, st_interval = get_probs(intervals, controls, problem, ps, st)
@@ -113,10 +121,10 @@ function (layer::ShootingLayer)(problem::SciMLBase.AbstractDEProblem, ps, st)
         i -> (
             sys, probs[i],
             algorithm, setter, controls, ps.controls, st.controls,
-            tgrids[i],
+            tgrids[i], get_shooting_variables(intervals[i], sys)
         ), length(intervals)
     )
-    sols = mythreadmap(ensemble_algorithm, Base.Fix2(Solutions.ShootingSegment, sys) ∘ Base.splat(sequential_solve), args)
+    sols = mythreadmap(ensemble_algorithm, solve_segment, args)
     return Trajectory(sols, sys), merge(st, (; interval = st_interval))
 end
 
@@ -126,11 +134,11 @@ end
 # constraints computed by Solutions.Trajectory.shooting_constraints — one per
 # non-quadrature state, per gap between intervals — independent of which
 # variables happen to be tunable on each ShootingInterval.
-function get_number_of_shooting_constraints(layer::ShootingLayer)
-    n_intervals = length(layer.intervals)
-    n_intervals <= 1 && return 0
-    n_states = length(variable_symbols(layer.sys.sys)) - length(Solutions.quadrature_indices(layer.sys))
-    return (n_intervals - 1) * n_states
+function get_number_of_shooting_constraints(layer::ShootingLayer{N}) where N 
+    N == 1 && return 0 
+    return sum(2:N) do i 
+        get_number_of_shooting_constraints(layer.intervals[i])
+    end
 end
 
 function collect_timegrid(layer::ShootingLayer, ps, st)
@@ -138,9 +146,7 @@ function collect_timegrid(layer::ShootingLayer, ps, st)
     tspans = reduce(vcat, map(intervals) do interval 
         collect(interval.tspan)
     end)
-    @info tspans
     tgrid = collect_timegrid(controls, ps.controls, st.controls, extrema(tspans))
-    @info tgrid
     append!(tspans, reduce(vcat, map(collect, tgrid)))
     sort!(tspans)
     unique!(tspans)

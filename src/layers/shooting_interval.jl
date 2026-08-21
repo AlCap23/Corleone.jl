@@ -22,6 +22,8 @@ $(FIELDS)
     bounds
     "The tspan for the initial condition"
     tspan
+    "Lifted controls"
+    controls
 end
 
 function ShootingInterval(
@@ -29,7 +31,8 @@ function ShootingInterval(
         variable_id,
         tspan = problem.tspan;
         init = nothing,
-        bounds = nothing
+        bounds = nothing, 
+        controls = [],
     )
     return ShootingInterval(
         variable_id,
@@ -37,7 +40,7 @@ function ShootingInterval(
                 isempty(variable_id) ? eltype(problem.u0)[] : getsym(problem, variable_id)(problem)
             ) : Base.Fix1(init, problem),
         bounds,
-        tspan
+        tspan, controls
     )
 end
 
@@ -103,3 +106,11 @@ get_variable_index(::Nothing, pc::ShootingInterval) = begin
     @assert isa(SymbolicIndexingInterface.symbolic_type(variable_id), SymbolicIndexingInterface.NotSymbolic) "Symbolic indices are only valid when providing a symbolic container!"
     variable_id
 end
+
+get_shooting_variables(pc::ShootingInterval, sys) = begin 
+    isempty(pc.controls) && return pc.variable_id
+    idx = vcat(pc.variable_id, pc.controls)
+    idx
+end
+
+get_number_of_shooting_constraints(pc::ShootingInterval) = size(vcat(pc.variable_id, pc.controls),1)
