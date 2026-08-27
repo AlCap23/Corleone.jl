@@ -3,7 +3,7 @@ function augment_system(
         control_indices = Int64[], svd = false, fixed::Bool = false,
         kwargs...
     )
-    sys = Corleone.retrieve_symbol_cache(prob, [])
+    sys = prob.f.sys
     states = SymbolicIndexingInterface.variable_symbols(sys)
     sort!(states, by = Base.Fix1(SymbolicIndexingInterface.variable_index, sys))
     dstates = map(xi -> Symbol(:d, xi), states)
@@ -128,12 +128,25 @@ function derive_sensitivity_equations_svd(prob, alg, config; params = Int64[], t
     return merge(config, (; sensitivities = G, differential_sensitivities = dG, sensitivity_equations = sensitivities))
 end
 
-function derive_sensitivity_equations(prob, alg, config; params = Int64[], tunable_ic = Int64[], kwargs...)
+function select_subset_params(parameters, params::AbstractVector{<:Int})
+    return parameters[params]
+end
+
+function select_subset_params(parameters, params::AbstractVector{<:Symbol})
+    @assert all([any(Base.Fix1(isequal, Symbolics.variable(p)).(parameters)) for p in params]) "Augmentation: Some of the selected parameters are not in the symbol cache!"
+    idxs = map(p -> argmax(Base.Fix1(isequal, Symbolics.variable(p)).(parameters)), params)
+    return parameters[idxs]
+end
+
+
+function derive_sensitivity_equations(prob, alg, config; params::Union{AbstractVector{<:Int}, AbstractVector{<:Symbol}} = Int64[],  
+            tunable_ic = Int64[], kwargs...)
+
     # TODO just switch this if we want to use the tunable_ics
     tunable_ic = empty(tunable_ic)
     (; differential_vars, vars, parameters, equations) = config
 
-    psubset = parameters[params]
+    psubset = select_subset_params(parameters, params)
 
     np_considered = size(psubset, 1) + size(tunable_ic, 1)
     nx = size(vars, 1)
@@ -314,9 +327,9 @@ function build_new_system(prob::ODEProblem, config; control_indices = Int64[], k
     # Note: This is different
     fnew = ODEFunction(IIP ? fiip : foop, sys = newsys)
     problem = remake(prob, f = fnew, u0 = u0, p = p0)
-    layersys = Corleone.retrieve_symbol_cache(problem, control_indices)
+
     obsfun = map(observed) do ex
-        fobs = getsym(layersys, Symbolics.SymbolicUtils.Code.toexpr.(ex))
+        fobs = getsym(problem.f.sys, Symbolics.SymbolicUtils.Code.toexpr.(ex))
         fobs
     end
     return problem, obsfun

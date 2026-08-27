@@ -58,6 +58,9 @@ function Base.show(io::IO, oed::OEDLayer{DISCRETE, SAMPLED, FIXED}) where {DISCR
     return Base.show(io, "text/plain", isa(layer, SingleShootingLayer) ? layer.problem : layer.layer.problem)
 end
 
+
+
+#=
 """
 $(SIGNATURES)
 
@@ -632,3 +635,4 @@ function _get_sampling_sums!(res::AbstractVector, oed::OEDLayer{false, true, fal
 end
 
 get_block_structure(layer::OEDLayer) = get_block_structure(layer.layer)
+=#

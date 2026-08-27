@@ -18,7 +18,7 @@ module LotkaVolterra
         u0 = [0.5, 0.7, 0.0]
         p0 = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
-        return prob = ODEProblem(ODEFunction(lotka_dynamics!, sys = sys), u0, tspan, p0; abstol = 1.0e-8, reltol = 1.0e-6)
+        return ODEProblem(ODEFunction(lotka_dynamics!, sys = sys), u0, tspan, p0; abstol = 1.0e-8, reltol = 1.0e-6)
     end
 end
 

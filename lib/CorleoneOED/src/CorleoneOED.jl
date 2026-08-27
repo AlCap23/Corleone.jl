@@ -21,8 +21,8 @@ export OEDLayer
 export fisher_information, observed_equations, sensitivities
 export local_information_gain, global_information_gain
 
-include("multiexperiments.jl")
-export MultiExperimentLayer
+#include("multiexperiments.jl")
+#export MultiExperimentLayer
 
 # TODO
 # Dispatch for optimality(crit, oed, x, ps, st)
