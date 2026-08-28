@@ -17,6 +17,83 @@ end
 
 default_observed = (u, p, t) -> u
 
+abstract type Measurement end
+
+@concrete struct DiscreteMeasurement <: Measurement
+    "Measurement identifier"
+    id 
+    "Discrete measurement points"
+    tpoints
+    "Observed function"
+    observed
+end
+
+@concrete struct ContinuousMeasurement <: Measurement 
+    "Measurement identifier"
+    id
+    "Breakpoints of continuous measurement grid"
+    tpoints
+    "Observed function"
+    observed
+end
+
+@concrete terse struct OEDLayer <: LuxCore.AbstractLuxContainerLayer{(:shooting,)}
+    "The underlying shooting layer"
+    shooting
+    "Problem with augmented differential equations"
+    augmented_prob
+    "Measurements"
+    measurements
+end
+
+function control_from_measurement(m::Union{DiscreteMeasurement,ContinuousMeasurement})
+    return Corleone.PiecewiseParameter(
+        Symbol(m.id), m.tpoints, 1.0, (0.0,1.0)
+    )
+end
+
+function OEDLayer(
+    problem::SciMLBase.AbstractDEProblem,
+    variable_id,
+    params::Union{Array{<:Int}, Array{<:Symbol}},
+    controls...;
+    shooting_method::Corleone.AbstractAutoShoot = NoShoot(),
+    algorithm::SciMLBase.AbstractDEAlgorithm,
+    ensemble_algorithm::SciMLBase.EnsembleAlgorithm = EnsembleSerial(),
+    tspan = problem.tspan,
+    measurements = Measurement[],
+    kwargs...
+)
+
+    observed_continuous = filter(x -> typeof(x) <: ContinuousMeasurement, measurements)
+    observed_discrete = filter(x -> typeof(x) <: DiscreteMeasurement, measurements)
+
+    newproblem, observed = augment_system(
+        problem, algorithm, params = params, continuous_measurements = observed_continuous,
+        discrete_measurements = observed_discrete
+    )
+
+    new_controls = PiecewiseParameter[CorleoneOED.control_from_measurement(x) for x in measurements]
+
+    shooting_layer = ShootingLayer(newproblem, variable_id, controls..., new_controls...,
+        algorithm=algorithm, ensemble_algorithm=ensemble_algorithm, shooting_method=shooting_method,
+        tspan = tspan
+    )
+
+    return OEDLayer(shooting_layer, newproblem, (; discrete = observed_discrete, continuous = observed_continuous))
+end
+
+LuxCore.initialparameters(rng::Random.AbstractRNG, oed::OEDLayer) = LuxCore.initialparameters(rng, oed.shooting)
+LuxCore.initialstates(rng::Random.AbstractRNG, oed::OEDLayer) = LuxCore.initialstates(rng, oed.shooting)
+
+function (x::OEDLayer)(Nothing, ps, st)
+    x.shooting(x.augmented_prob, ps, st)
+end
+
+function testy(x)
+     return x
+end
+#=
 """
 $(TYPEDEF)
 
@@ -60,7 +137,6 @@ end
 
 
 
-#=
 """
 $(SIGNATURES)
 

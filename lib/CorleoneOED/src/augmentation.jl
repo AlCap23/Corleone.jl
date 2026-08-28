@@ -96,7 +96,8 @@ function compute_svd_of_F(prob, alg, config, params; ns = nothing, threshold_sin
     return svdF, ns, important_params
 end
 
-function derive_sensitivity_equations_svd(prob, alg, config; params = Int64[], tunable_ic = Int64[], kwargs...)
+function derive_sensitivity_equations_svd(prob, alg, config; 
+        params = Int64[], tunable_ic = Int64[], kwargs...)
     # TODO just switch this if we want to use the tunable_ics
     tunable_ic = empty(tunable_ic)
     (; differential_vars, vars, parameters, equations) = config
@@ -139,7 +140,8 @@ function select_subset_params(parameters, params::AbstractVector{<:Symbol})
 end
 
 
-function derive_sensitivity_equations(prob, alg, config; params::Union{AbstractVector{<:Int}, AbstractVector{<:Symbol}} = Int64[],  
+function derive_sensitivity_equations(prob, alg, config; 
+            params::Union{AbstractVector{<:Int}, AbstractVector{<:Symbol}} = Int64[],  
             tunable_ic = Int64[], kwargs...)
 
     # TODO just switch this if we want to use the tunable_ics
@@ -171,13 +173,14 @@ function derive_sensitivity_equations(prob, alg, config; params::Union{AbstractV
     return merge(config, (; sensitivities = G, differential_sensitivities = dG, sensitivity_equations = sensitivities))
 end
 
-function add_observed_equations(prob, config; observed_continuous = (u, p, t) -> u, 
-            observed_discrete = (u,p,t) -> [], kwargs...)
+function add_observed_equations(prob, config; continuous_measurements = ContinuousMeasurement[], 
+            discrete_measurements = DiscreteMeasurement[], kwargs...)
     (; symbolcache, differential_vars, vars, parameters, independent_vars, equations) = config
-    obs_cont = observed_continuous(vars, parameters, only(independent_vars))
+
+    obs_cont = reduce(vcat, map(obs -> obs.observed(vars, parameters, only(independent_vars)), continuous_measurements))
     dobs_cont_dx = Symbolics.jacobian(obs_cont, vars)
     config = merge(config, (; observed_continuous = obs_cont, observed_continuous_jacobian = dobs_cont_dx))
-    obs_disc = observed_discrete(vars, parameters, only(independent_vars))
+    obs_disc = reduce(vcat, map(obs -> obs.observed(vars, parameters, only(independent_vars)), discrete_measurements))
     dobs_disc_dx = Symbolics.jacobian(obs_disc, vars)
     merge(config, (; observed_discrete = obs_disc, observed_discrete_jacobian = dobs_disc_dx))
 end
@@ -185,7 +188,8 @@ end
 finalize_config(::Any, args...; kwargs...) = throw(ErrorException("The OED cannot be derived based on the given information. This should never happen. Please open up an issue."))
 
 # Continuous, non fixed version
-function finalize_config(prob, config; control_indices = Int64[], kwargs...)
+function finalize_config(prob, config; control_indices = Int64[], continuous_measurements = ContinuousMeasurement[],
+            discrete_measurements = DiscreteMeasurement[], kwargs...)
     (; symbolcache, differential_vars, vars, parameters, independent_vars, equations) = config
     (; sensitivities, differential_sensitivities, sensitivity_equations) = config
     (; observed_continuous_jacobian, observed_continuous) = config
@@ -202,10 +206,14 @@ function finalize_config(prob, config; control_indices = Int64[], kwargs...)
     G_disc = sum(axes(observed_continuous_jacobian, 1)) do i
         observed_discrete_jacobian[i:i, :] * sensitivities
     end
-    w_disc = Symbolics.variables(:w_disc, axes(observed_discrete_jacobian, 1))
+
+    disc_names = [x.id for x in discrete_measurements]
+    cont_names = [x.id for x in continuous_measurements]
+
+    w_disc = reduce(vcat, [Symbolics.variable(name) for name in disc_names])
     w_disc = Symbolics.setdefaultval.(w_disc, one(eltype(prob.u0)))
 
-    w_cont = Symbolics.variables(:w_cont, axes(observed_continuous_jacobian, 1))
+    w_cont = reduce(vcat, [Symbolics.variable(name) for name in cont_names])
     w_cont = Symbolics.setdefaultval.(w_cont, one(eltype(prob.u0)))
     F_cont = sum(enumerate(w_cont)) do (i, wi)
         Gi = observed_continuous_jacobian[i:i, :] * sensitivities
