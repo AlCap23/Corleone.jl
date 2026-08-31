@@ -1,3 +1,4 @@
+#=
 # Helper for weighting the controls over the trajectory
 struct WeightedObservation
     grid::Vector{Vector{Int64}}
@@ -14,8 +15,7 @@ function (w::WeightedObservation)(controls::AbstractVector{T}, G::AbstractVector
         w(controls, i, G[i])
     end
 end
-
-default_observed = (u, p, t) -> u
+=#
 
 abstract type Measurement end
 
@@ -80,7 +80,7 @@ function OEDLayer(
         tspan = tspan
     )
 
-    return OEDLayer(shooting_layer, newproblem, (; discrete = observed_discrete, continuous = observed_continuous))
+    return OEDLayer(shooting_layer, newproblem, (; observed = observed, discrete = observed_discrete, continuous = observed_continuous))
 end
 
 LuxCore.initialparameters(rng::Random.AbstractRNG, oed::OEDLayer) = LuxCore.initialparameters(rng, oed.shooting)
@@ -90,9 +90,61 @@ function (x::OEDLayer)(Nothing, ps, st)
     x.shooting(x.augmented_prob, ps, st)
 end
 
-function testy(x)
-     return x
+__continuous_fisher_information(oed::OEDLayer, traj::Trajectory) = last.(oed.measurements.observed.fisher(traj))
+
+function __discrete_fisher_information(oed::OEDLayer, traj::Trajectory)
+    (; measurements) = oed
+    (; observed, discrete) = measurements
+
+    hx_G_discrete = observed.hx_G_discrete(traj)
+    F_discrete = sum(map(enumerate(discrete)) do (i,obs_disc_i)
+        id, tpoints = obs_disc_i.id, obs_disc_i.tpoints
+        id_t_in_sol = [findfirst(==(ti), traj.t) for ti in tpoints]
+        sol_w = traj[id][id_t_in_sol]
+        sol_hx_G = [getindex.(hx_G_discrete, idx)[i:i,:] for idx in id_t_in_sol]
+        F_disc = [x' * x for x in sol_hx_G]
+        sum(sol_w .* F_disc)
+    end)
+    return F_discrete
 end
+
+__fisher_information(oed::OEDLayer, traj::Trajectory) = __discrete_fisher_information(oed, traj) + __continuous_fisher_information(oed, traj)
+
+function fisher_information(oed, x, ps, st::NamedTuple)
+    sol, _ = oed(x, ps, st)
+    __fisher_information(oed, sol), st
+end
+
+
+function discrete_sampling_sums(oed::OEDLayer, x, ps, st::NamedTuple)
+    (; measurements,) = oed
+    (; discrete,) = measurements
+
+    res = zeros(eltype(ps), size(discrete, 1))
+    map(enumerate(discrete)) do (i, sampling_i)
+        w_i = reduce(vcat, getfield(ps.controls.controls, sampling_i.id))
+        res[i] = sum(w_i[2:end])
+    end
+    return res
+end
+
+function continuous_sampling_sums(oed::OEDLayer, x, ps, st::NamedTuple)
+    (; measurements,) = oed
+    (; continuous,) = measurements
+
+    sol, _ = oed(x, ps, st)
+    res = zeros(eltype(ps), size(continuous, 1))
+    map(enumerate(continuous)) do (i, sampling_i)
+        w_i = sol[sampling_i.id]
+        res[i] = sum(diff(sol.t) .* w_i[1:end-1])
+    end
+    return res
+end
+
+function sampling_sums(oed::OEDLayer, x, ps, st)
+    return vcat(continuous_sampling_sums(oed, x, ps, st), discrete_sampling_sums(oed, x, ps, st))
+end
+
 #=
 """
 $(TYPEDEF)
