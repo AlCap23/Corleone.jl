@@ -90,16 +90,23 @@ function (x::OEDLayer)(Nothing, ps, st)
     x.shooting(x.augmented_prob, ps, st)
 end
 
-__continuous_fisher_information(oed::OEDLayer, traj::Trajectory) = last.(oed.measurements.observed.fisher(traj))
+function __continuous_fisher_information(oed::OEDLayer, traj::Trajectory)
+    (; measurements) = oed
+    (; observed, continuous) = measurements
+    isempty(continuous) && return zeros(size(measurements.observed.fisher.getters))
+
+    return last.(oed.measurements.observed.fisher(traj))
+end
 
 function __discrete_fisher_information(oed::OEDLayer, traj::Trajectory)
     (; measurements) = oed
     (; observed, discrete) = measurements
 
+    isempty(discrete) && return zeros(size(measurements.observed.fisher.getters))
     hx_G_discrete = observed.hx_G_discrete(traj)
     F_discrete = sum(map(enumerate(discrete)) do (i,obs_disc_i)
         id, tpoints = obs_disc_i.id, obs_disc_i.tpoints
-        id_t_in_sol = [findfirst(==(ti), traj.t) for ti in tpoints]
+        id_t_in_sol = [findfirst(t -> isapprox(t, ti; atol=1e-10, rtol=0), traj.t) for ti in tpoints]
         sol_w = traj[id][id_t_in_sol]
         sol_hx_G = [getindex.(hx_G_discrete, idx)[i:i,:] for idx in id_t_in_sol]
         F_disc = [x' * x for x in sol_hx_G]
@@ -145,6 +152,9 @@ function sampling_sums(oed::OEDLayer, x, ps, st)
     return vcat(continuous_sampling_sums(oed, x, ps, st), discrete_sampling_sums(oed, x, ps, st))
 end
 
+function sampling_sums!(res, oed::OEDLayer, x, ps, st)
+    res .= sampling_sums(oed, x, ps, st)
+end
 #=
 """
 $(TYPEDEF)

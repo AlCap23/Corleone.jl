@@ -177,10 +177,10 @@ function add_observed_equations(prob, config; continuous_measurements = Continuo
             discrete_measurements = DiscreteMeasurement[], kwargs...)
     (; symbolcache, differential_vars, vars, parameters, independent_vars, equations) = config
 
-    obs_cont = reduce(vcat, map(obs -> obs.observed(vars, parameters, only(independent_vars)), continuous_measurements))
+    obs_cont = reduce(vcat, map(obs -> obs.observed(vars, parameters, only(independent_vars)), continuous_measurements); init = Num[])
     dobs_cont_dx = Symbolics.jacobian(obs_cont, vars)
     config = merge(config, (; observed_continuous = obs_cont, observed_continuous_jacobian = dobs_cont_dx))
-    obs_disc = reduce(vcat, map(obs -> obs.observed(vars, parameters, only(independent_vars)), discrete_measurements))
+    obs_disc = reduce(vcat, map(obs -> obs.observed(vars, parameters, only(independent_vars)), discrete_measurements), init = Num[])
     dobs_disc_dx = Symbolics.jacobian(obs_disc, vars)
     merge(config, (; observed_discrete = obs_disc, observed_discrete_jacobian = dobs_disc_dx))
 end
@@ -203,22 +203,21 @@ function finalize_config(prob, config; control_indices = Int64[], continuous_mea
     dF = Symbolics.variables(:dF, 1:n, 1:n)
     # We build the output expression
 
-    G_disc = sum(axes(observed_continuous_jacobian, 1)) do i
-        observed_discrete_jacobian[i:i, :] * sensitivities
-    end
+    G_disc = observed_discrete_jacobian * sensitivities
 
     disc_names = [x.id for x in discrete_measurements]
     cont_names = [x.id for x in continuous_measurements]
 
-    w_disc = reduce(vcat, [Symbolics.variable(name) for name in disc_names])
+    w_disc = Symbolics.variable.(disc_names)
     w_disc = Symbolics.setdefaultval.(w_disc, one(eltype(prob.u0)))
 
-    w_cont = reduce(vcat, [Symbolics.variable(name) for name in cont_names])
+    w_cont = Symbolics.variable.(cont_names)
     w_cont = Symbolics.setdefaultval.(w_cont, one(eltype(prob.u0)))
-    F_cont = sum(enumerate(w_cont)) do (i, wi)
+
+    F_cont = !isempty(w_cont) ? sum(enumerate(w_cont)) do (i, wi)
         Gi = observed_continuous_jacobian[i:i, :] * sensitivities
         wi * Gi'Gi
-    end
+    end : zero.(F)
     idx_disc = axes(w_disc, 1) .+ size(parameters, 1)
     idx_cont = axes(w_cont, 1) .+ size(parameters, 1) .+ size(observed_discrete_jacobian, 1)
     append!(parameters, w_disc)
@@ -255,16 +254,8 @@ function build_new_system(prob::ODEProblem, config; control_indices = Int64[], k
     (; equations, vars, differential_vars, parameters, independent_vars, observed) = config
     (; observed_continuous_jacobian, observed_discrete_jacobian, sensitivities) = config
     # Append the local information gain
-    ex_local_cont = reduce(
-        vcat, map(axes(observed_continuous_jacobian, 1)) do i
-            G = observed_continuous_jacobian[i:i, :] * sensitivities
-        end
-    )
-    ex_local_disc = reduce(
-        vcat, map(axes(observed_discrete_jacobian, 1)) do i
-            G = observed_discrete_jacobian[i:i, :] * sensitivities
-        end
-    )
+    ex_local_cont = observed_continuous_jacobian * sensitivities
+    ex_local_disc = observed_discrete_jacobian * sensitivities
     observed = merge(observed, (; local_information_gain = Num.(vcat(ex_local_cont, ex_local_disc))))
     IIP = SciMLBase.isinplace(prob)
     foop, fiip = Symbolics.build_function(equations, vars, parameters, only(independent_vars); expression = Val{false}, cse = true)
