@@ -31,8 +31,7 @@ end
     sys = symbolic_container(prob.f)
     cgrid = collect(LinRange(0.0, 12.0, 4))
     pc1 = PiecewiseParameter(:u1, copy(cgrid))
-    pc2 = PiecewiseParameter(:u2, copy(cgrid))
-    c = Controls(pc1, pc2; sys = sys)
+    c = Controls(pc1; sys = sys)
     reset!(c)
     ps, st = LuxCore.setup(rng, c)
 
@@ -62,8 +61,7 @@ end
     prob = LotkaVolterra.generate()
     sys = symbolic_container(prob.f)
     pc1 = PiecewiseParameter(:u1, [0.0, 2.0])
-    pc2 = PiecewiseParameter(:u2, [0.0, 2.0])
-    c = Controls(pc1, pc2; sys = sys)
+    c = Controls(pc1; sys = sys)
     reset!(c)
 
     # No injected shooting points on either control → no constraints.
@@ -87,11 +85,9 @@ end
     # ContainerLayer over a NamedTuple of leaves (Controls.controls): sums children.
     prob = LotkaVolterra.generate()
     sys = symbolic_container(prob.f)
-    c = Controls(pc1, pc2; sys = sys)
+    c = Controls(pc1; sys = sys)
     inject!(pc1, 1.0)
-    inject!(pc2, 0.5)
-    inject!(pc2, 1.5)
-    @test Corleone.get_number_of_shooting_constraints(c) == 1 + 2
+    @test Corleone.get_number_of_shooting_constraints(c) == 1 
 
     # ShootingLayer overrides the generic container recursion: what it actually
     # contributes once solved is state-continuity constraints (one per
@@ -124,8 +120,7 @@ end
     sys = symbolic_container(prob.f)
     cgrid = collect(LinRange(0.0, 12.0, 4))
     pc1 = PiecewiseParameter(:u1, copy(cgrid))
-    pc2 = PiecewiseParameter(:u2, copy(cgrid))
-    c = Controls(pc1, pc2; sys = sys)
+    c = Controls(pc1; sys = sys)
     reset!(c)
     ps, st = LuxCore.setup(rng, c)
 
@@ -163,8 +158,7 @@ end
     sys = symbolic_container(prob.f)
     cgrid = collect(LinRange(0.0, 12.0, 4))
     pc1 = PiecewiseParameter(:u1, copy(cgrid))
-    pc2 = PiecewiseParameter(:u2, copy(cgrid))
-    c = Controls(pc1, pc2; sys = sys)
+    c = Controls(pc1; sys = sys)
     reset!(c)
     ps, st = LuxCore.setup(rng, c)
     ps_ca = ComponentArray(ps)
