@@ -48,7 +48,7 @@ end
 
 function control_from_measurement(m::Union{DiscreteMeasurement,ContinuousMeasurement})
     return Corleone.PiecewiseParameter(
-        Symbol(m.id), m.tpoints, 1.0, (0.0,1.0)
+        Symbol(m.id), m.tpoints, 1.0, (ps, st) -> ([zeros(1,) for _ in 1:length(m.tpoints)+1], [ones(1,) for _ in 1: length(m.tpoints)+1])
     )
 end
 
@@ -120,7 +120,7 @@ function discrete_sampling_sums(oed::OEDLayer, x, ps, st::NamedTuple)
     (; measurements,) = oed
     (; discrete,) = measurements
 
-    res = zeros(eltype(ps), size(discrete, 1))
+    res = zeros(eltype(first(first(ps.controls.controls))), size(discrete, 1))
     map(enumerate(discrete)) do (i, sampling_i)
         w_i = reduce(vcat, getfield(ps.controls.controls, sampling_i.id))
         res[i] = sum(w_i[2:end])
@@ -133,7 +133,7 @@ function continuous_sampling_sums(oed::OEDLayer, x, ps, st::NamedTuple)
     (; continuous,) = measurements
 
     sol, _ = oed(x, ps, st)
-    res = zeros(eltype(ps), size(continuous, 1))
+    res = zeros(eltype(first(first(ps.controls.controls))), size(continuous, 1))
     map(enumerate(continuous)) do (i, sampling_i)
         w_i = sol[sampling_i.id]
         res[i] = sum(diff(sol.t) .* w_i[1:end-1])
