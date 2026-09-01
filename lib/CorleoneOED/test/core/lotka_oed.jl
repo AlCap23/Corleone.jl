@@ -58,6 +58,18 @@ lb, ub = Corleone.get_bounds(oed.shooting, ps, st) .|> ComponentArray
     @test_nowarn @inferred CorleoneOED.sampling_sums(oed, nothing, ps, st)
 
     @test_nowarn @inferred first(CorleoneOED.fisher_information(oed, nothing, ps, st))
+
+    fim = first(CorleoneOED.fisher_information(oed, nothing, ps, st))
+
+    # Update starting from freshly initialized
+    st_1 = CorleoneOED.update_fim(oed, [(; ps=ps)])
+    @test st_1.F_init == fim
+    @assert first(CorleoneOED.fisher_information(oed, nothing, ps, st_1)) == 2 * fim
+
+    # Update starting from st_1
+    st_2 = CorleoneOED.update_fim(oed, [(; ps = ps)], st_1)
+    @test st_2.F_init == 2 * fim
+
 end
 
 

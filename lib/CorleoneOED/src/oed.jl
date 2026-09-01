@@ -83,8 +83,47 @@ function OEDLayer(
     return OEDLayer(shooting_layer, newproblem, (; observed = observed, discrete = observed_discrete, continuous = observed_continuous))
 end
 
+function get_size_F(oed::OEDLayer)
+    size_hxG = size(oed.measurements.observed.fisher.getters)
+    if length(size_hxG) > 2
+        size_hxG = size_hxG[1:2]
+    end
+    return (size_hxG[2], size_hxG[2])
+end
+
 LuxCore.initialparameters(rng::Random.AbstractRNG, oed::OEDLayer) = LuxCore.initialparameters(rng, oed.shooting)
-LuxCore.initialstates(rng::Random.AbstractRNG, oed::OEDLayer) = LuxCore.initialstates(rng, oed.shooting)
+LuxCore.initialstates(rng::Random.AbstractRNG, oed::OEDLayer) = begin
+    
+    st = LuxCore.initialstates(rng, oed.shooting)
+    size_F = get_size_F(oed)
+    T = eltype(oed.augmented_prob.u0)
+    F_init = zeros(T, size_F)
+
+    return merge(st, (; F_init = F_init))
+end
+
+function update_fim(oed::OEDLayer, experiments, st::NamedTuple)
+    FIM = sum(
+        map(experiments) do experiment
+            # sum up only information gained by the experiment
+            fisher_information(oed, nothing, experiment.ps, st)[1] - st.F_init
+        end
+    )
+
+    return merge(st, (; F_init = FIM + st.F_init))
+end
+
+function update_fim(oed::OEDLayer, experiments)
+    ps, st = LuxCore.setup(Random.default_rng(), oed)
+    FIM = sum(
+        map(experiments) do experiment
+            # sum up only information gained by the experiment
+            fisher_information(oed, nothing, experiment.ps, st)[1]
+        end
+    )
+
+    return merge(st, (; F_init = FIM))
+end
 
 function (x::OEDLayer)(Nothing, ps, st)
     x.shooting(x.augmented_prob, ps, st)
@@ -93,7 +132,7 @@ end
 function __continuous_fisher_information(oed::OEDLayer, traj::Trajectory)
     (; measurements) = oed
     (; observed, continuous) = measurements
-    isempty(continuous) && return zeros(size(measurements.observed.fisher.getters))
+    isempty(continuous) && return zeros(eltype(oed.augmented_prob.u0), get_size_F(oed))
 
     return last.(oed.measurements.observed.fisher(traj))
 end
@@ -102,7 +141,7 @@ function __discrete_fisher_information(oed::OEDLayer, traj::Trajectory)
     (; measurements) = oed
     (; observed, discrete) = measurements
 
-    isempty(discrete) && return zeros(size(measurements.observed.fisher.getters))
+    isempty(discrete) && return zeros(eltype(oed.augmented_prob.u0), get_size_F(oed))
     hx_G_discrete = observed.hx_G_discrete(traj)
     F_discrete = sum(map(enumerate(discrete)) do (i,obs_disc_i)
         id, tpoints = obs_disc_i.id, obs_disc_i.tpoints
@@ -119,7 +158,7 @@ __fisher_information(oed::OEDLayer, traj::Trajectory) = __discrete_fisher_inform
 
 function fisher_information(oed, x, ps, st::NamedTuple)
     sol, _ = oed(x, ps, st)
-    __fisher_information(oed, sol), st
+    st.F_init + __fisher_information(oed, sol), st
 end
 
 
