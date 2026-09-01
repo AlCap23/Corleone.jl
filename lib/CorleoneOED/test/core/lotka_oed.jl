@@ -41,20 +41,27 @@ ps, st = LuxCore.setup(StableRNG(1), oed)
 p = ComponentArray(ps)
 lb, ub = Corleone.get_bounds(oed.shooting, ps, st) .|> ComponentArray
 
-sol, _ = oed(nothing, p, st)
 
-@test sol.u[1] == vcat(prob.u0, zeros(6 + 3 ), ones(5))
+@testset "Type stabilities and other tests" begin
+    sol, _ = oed(nothing, p, st)
 
-@test collect(lb.controls) == vcat(ones(2), zeros(length(cgrid) + length(tgrid1) + length(tgrid2) + 3))
-@test collect(ub.controls) == vcat(ones(2), ones(length(cgrid) + length(tgrid1) + length(tgrid2) + 3))
+    @test_nowarn @inferred first(oed(nothing, p, st))
+    @test sol.u[1] == vcat(prob.u0, zeros(6 + 3 ), ones(5))
 
-res = zeros(2)
-@test_nowarn CorleoneOED.sampling_sums!(res, oed, nothing, ps, st)
-@test [12.0, 12.0] == res
-@test CorleoneOED.sampling_sums(oed, nothing, ps, st) == res[1:2]
-@test_nowarn @inferred CorleoneOED.sampling_sums(oed, nothing, ps, st)
+    @test collect(lb.controls) == vcat(ones(2), zeros(length(cgrid) + length(tgrid1) + length(tgrid2) + 3))
+    @test collect(ub.controls) == vcat(ones(2), ones(length(cgrid) + length(tgrid1) + length(tgrid2) + 3))
 
-@testset "Integer measurements" begin
+    res = zeros(2)
+    @test_nowarn CorleoneOED.sampling_sums!(res, oed, nothing, ps, st)
+    @test [12.0, 12.0] == res
+    @test CorleoneOED.sampling_sums(oed, nothing, ps, st) == res[1:2]
+    @test_nowarn @inferred CorleoneOED.sampling_sums(oed, nothing, ps, st)
+
+    @test_nowarn @inferred first(CorleoneOED.fisher_information(oed, nothing, ps, st))
+end
+
+
+@testset "Setup with discrete and continuous measurements" begin
     for w1_discrete in [true, false]
         w1 =  w1_discrete ? DiscreteMeasurement(:w1, copy(tgrid1), (u,p,t) -> u[1:1]) : ContinuousMeasurement(:w1, copy(tgrid1), (u,p,t) -> u[1:1])
         for w2_discrete in [true, false]
