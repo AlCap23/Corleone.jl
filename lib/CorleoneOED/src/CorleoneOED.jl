@@ -3,6 +3,7 @@ module CorleoneOED
 using Reexport
 @reexport using Corleone
 @reexport using Symbolics
+using Corleone.ConcreteStructs
 using LuxCore
 using Random
 using SymbolicIndexingInterface
@@ -17,12 +18,12 @@ include("augmentation.jl")
 
 # TODO Docs
 include("oed.jl")
-export OEDLayer
-export fisher_information, observed_equations, sensitivities
-export local_information_gain, global_information_gain
+export OEDLayer, Measurement, DiscreteMeasurement, ContinuousMeasurement
+#export fisher_information, observed_equations, sensitivities
+#export local_information_gain, global_information_gain
 
-include("multiexperiments.jl")
-export MultiExperimentLayer
+#include("multiexperiments.jl")
+#export MultiExperimentLayer
 
 # TODO
 # Dispatch for optimality(crit, oed, x, ps, st)

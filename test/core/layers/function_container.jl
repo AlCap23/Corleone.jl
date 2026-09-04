@@ -15,7 +15,7 @@ function _lotka_trajectory_fc(p0, grid)
     return Solutions.Trajectory((sseg,), cache)
 end
 
-traj = _lotka_trajectory_fc([1.0, 1.0, 1.0, 1.0, 0.3, 0.4], [0.0, 6.0, 12.0])
+traj = _lotka_trajectory_fc([1.0, 1.0, 0.3], [0.0, 6.0, 12.0])
 
 function _make_container(foops...)
     layers = map(f -> DynamicFunctionLayer(f), foops)

@@ -14,7 +14,7 @@ function _lotka_trajectory(p0, grid)
     return Solutions.Trajectory((sseg,), cache)
 end
 
-traj = _lotka_trajectory([1.0, 1.0, 1.0, 1.0, 0.3, 0.4], [0.0, 6.0, 12.0])
+traj = _lotka_trajectory([1.0, 1.0, 0.3], [0.0, 6.0, 12.0])
 
 @testset "initialparameters / initialstates delegate to the stored constructors" begin
     layer = DynamicFunctionLayer(

@@ -25,7 +25,7 @@ function Controls(x...; sys = nothing, kwargs...)
             get_parameter_index(sys, xi)
         end
     )
-    ps = sortperm(perm)
+    ps = length(perm) > 1 ? sortperm(perm) : 1
     return Controls(sys, nt, ps)
 end
 

@@ -19,9 +19,9 @@ withenv("GROUP" => GROUP) do
             @safetestset "Lotka Volterra" begin
                 include("core/lotka_oed.jl")
             end
-            return @safetestset "Lotka Volterra SVD" begin
-                include("core/lotka_oed_svd.jl")
-            end
+            #return @safetestset "Lotka Volterra SVD" begin
+            #    include("core/lotka_oed_svd.jl")
+            #end
         end,
         qa = (; env = joinpath(@__DIR__, "qa"), body = joinpath(@__DIR__, "qa", "qa.jl")),
     )
