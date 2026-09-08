@@ -52,10 +52,20 @@ function control_from_measurement(m::Union{DiscreteMeasurement,ContinuousMeasure
     )
 end
 
+function get_missing_params(prob, control_symbols, params::Array{<:Symbol})
+    return filter(p -> p ∉ control_symbols, params)
+end
+
+function get_missing_params(prob, control_symbols, params::Array{<:Int})
+    map(params) do idx
+        findfirst(==(idx), prob.f.sys.parameters)
+    end
+end
+
 function OEDLayer(
     problem::SciMLBase.AbstractDEProblem,
     variable_id,
-    params::Union{Array{<:Int}, Array{<:Symbol}},
+    params::Union{Vector{<:Int}, Vector{<:Symbol}},
     controls...;
     shooting_method::Corleone.AbstractAutoShoot = NoShoot(),
     algorithm::SciMLBase.AbstractDEAlgorithm,
@@ -65,6 +75,16 @@ function OEDLayer(
     kwargs...
 )
 
+    current_control_symbols = [cp.parameter_id for cp in controls if cp isa PiecewiseParameter]
+    missing_params = get_missing_params(problem, current_control_symbols, params)
+    
+    auto_controls = map(missing_params) do p_sym
+       # Find the index of the parameter in the problem to get initial value
+       p_idx = get(problem.f.sys.parameters, p_sym, nothing)
+       val = p_idx !== nothing ? problem.p[p_idx] : 1.0
+       PiecewiseParameter(p_sym, [problem.tspan[1]], val, (val, val))
+    end
+
     observed_continuous = filter(x -> typeof(x) <: ContinuousMeasurement, measurements)
     observed_discrete = filter(x -> typeof(x) <: DiscreteMeasurement, measurements)
 
@@ -73,9 +93,9 @@ function OEDLayer(
         discrete_measurements = observed_discrete
     )
 
-    new_controls = PiecewiseParameter[CorleoneOED.control_from_measurement(x) for x in measurements]
+    sampling_controls = PiecewiseParameter[CorleoneOED.control_from_measurement(x) for x in measurements]
 
-    shooting_layer = ShootingLayer(newproblem, variable_id, controls..., new_controls...,
+    shooting_layer = ShootingLayer(newproblem, variable_id, controls..., auto_controls..., sampling_controls...,
         algorithm=algorithm, ensemble_algorithm=ensemble_algorithm, shooting_method=shooting_method,
         tspan = tspan
     )
