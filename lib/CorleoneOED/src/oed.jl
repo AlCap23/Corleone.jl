@@ -76,7 +76,13 @@ function OEDLayer(
 )
 
     current_control_symbols = [cp.parameter_id for cp in controls if cp isa PiecewiseParameter]
-    missing_params = get_missing_params(problem, current_control_symbols, params)
+    missing_params = begin
+        try
+            get_missing_params(problem, current_control_symbols, collect(keys(problem.f.sys.parameters)))
+        catch
+            get_missing_params(problem, current_control_symbols, eachindex(problem.p))
+        end
+    end 
     
     auto_controls = map(missing_params) do p_sym
        # Find the index of the parameter in the problem to get initial value
@@ -153,8 +159,9 @@ function __continuous_fisher_information(oed::OEDLayer, traj::Trajectory)
     (; measurements) = oed
     (; observed, continuous) = measurements
     isempty(continuous) && return zeros(eltype(oed.augmented_prob.u0), get_size_F(oed))
-
-    return last.(oed.measurements.observed.fisher(traj))
+    F_cont = last.(oed.measurements.observed.fisher(traj))
+    @info F_cont
+    return F_cont
 end
 
 function __discrete_fisher_information(oed::OEDLayer, traj::Trajectory)
@@ -171,10 +178,16 @@ function __discrete_fisher_information(oed::OEDLayer, traj::Trajectory)
         F_disc = [x' * x for x in sol_hx_G]
         sum(sol_w .* F_disc)
     end)
+    @info F_discrete
     return F_discrete
 end
 
-__fisher_information(oed::OEDLayer, traj::Trajectory) = __discrete_fisher_information(oed, traj) + __continuous_fisher_information(oed, traj)
+__fisher_information(oed::OEDLayer, traj::Trajectory) = __discrete_fisher_information(oed, traj) .+ __continuous_fisher_information(oed, traj)
+
+__fisher_information(oed::OEDLayer, x, ps, st::NamedTuple) = begin
+    sol, _ = oed(x, ps, st)
+    return __fisher_information(oed, sol)
+end
 
 function fisher_information(oed, x, ps, st::NamedTuple)
     sol, _ = oed(x, ps, st)
