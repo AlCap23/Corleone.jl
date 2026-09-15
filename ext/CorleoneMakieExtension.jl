@@ -12,7 +12,7 @@ end
 function Makie.convert_arguments(
         PT::Type{<:Plot},
         sol::AbstractCompositeSolution;
-        vars = [],
+        vars = collect(keys(sol.sys.sys.variables)),
         idxs = Int[],
         show_segments::Bool = true,
         show_segment_ends::Bool = true,

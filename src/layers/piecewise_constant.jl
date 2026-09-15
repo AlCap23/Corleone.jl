@@ -100,6 +100,11 @@ LuxCore.initialparameters(::Random.AbstractRNG, pc::PiecewiseParameter{<:Any, No
     shape = get_parameter_shape(pc)
     [zeros(eltype(tpoints), shape...) for i in Base.OneTo(length(tpoints) + 1)]
 end
+LuxCore.initialparameters(rng::Random.AbstractRNG, pc::PiecewiseParameter{<:Any, <:Number}) = begin
+    (; tpoints, parameter_id, init) = pc
+    shape = get_parameter_shape(pc)
+    [init * ones(eltype(tpoints), shape...) for _ in Base.OneTo(length(tpoints) + 1)]
+end
 
 LuxCore.parameterlength(pc::PiecewiseParameter) = (length(pc.tpoints) + 1) * max(1, prod(get_parameter_shape(pc)))
 

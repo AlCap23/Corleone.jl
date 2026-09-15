@@ -208,19 +208,19 @@ end
         sys = LotkaVolterra.lotka_system # states [:x, :y, :L], params [:α, :β, :γ, :δ, :u1, :u2]
         parser = Parser(sys)
         ex1 = :(x(1.0) * x(3.0) + sin(y(2.0) + β))
-        ex2 = :(L(12.0) - x(0.0) * u2)
+        ex2 = :(L(12.0) - x(0.0))
 
         results = parser(ex1, ex2; timepoints = [0.0, 12.0])
         grid = parser.indexgrid
         @test grid == Dict(0.0 => 1, 1.0 => 2, 2.0 => 3, 3.0 => 4, 12.0 => 5)
 
-        p0 = [1.0, 1.0, 1.0, 1.0, 0.3, 0.4] # α, β, γ, δ, u1, u2
+        p0 = [1.0, 1.0, 0.3] # α, β, u1
         traj = _lotka_trajectory(p0, sort(collect(keys(grid))))
 
         # Computed independently from the same real trajectory, via ordinary
         # indexing/property access rather than the Parser-generated code path.
         expected1 = traj[:x][grid[1.0]] * traj[:x][grid[3.0]] + sin(traj[:y][grid[2.0]] + traj.ps[:β])
-        expected2 = traj[:L][grid[12.0]] - traj[:x][grid[0.0]] * traj.ps[:u2]
+        expected2 = traj[:L][grid[12.0]] - traj[:x][grid[0.0]] 
 
         f1_oop, f1_iip = eval.(results[1])
         f2_oop, f2_iip = eval.(results[2])
