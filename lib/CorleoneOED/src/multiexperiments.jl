@@ -67,7 +67,7 @@ function MultiExperimentLayer(
         nexp::Int,
         controls...;
         params = eachindex(prob.p), 
-        measurements = Measurement[],
+        measurements = AbstractMeasurement[],
         algorithm::SciMLBase.AbstractDEAlgorithm, 
         kwargs...
     )
@@ -85,7 +85,7 @@ function MultiExperimentLayer(
         params::Vector{<:Vector{<:Int}},
         controls...;
         algorithm::SciMLBase.AbstractDEAlgorithm, 
-        measurements = Measurement[],
+        measurements = AbstractMeasurement[],
         kwargs...)
 
     nexp = length(params)
