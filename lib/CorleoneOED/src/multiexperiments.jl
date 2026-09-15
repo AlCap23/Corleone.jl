@@ -90,7 +90,6 @@ function MultiExperimentLayer(
 
     nexp = length(params)
     layers = map(params) do param
-        @info param
         OEDLayer(prob, variable_id, param, controls...; 
             algorithm = algorithm,
             measurements = measurements,
@@ -215,12 +214,46 @@ function fisher_information(multi::MultiExperimentLayer{true}, x, ps, st::NamedT
     return F + st[1].F_init, st
 end  
 
+function sampling_sums(multi::MultiExperimentLayer{true}, x, ps, st::NamedTuple{fields}) where {fields}
+    return reduce(
+        vcat, map(enumerate(fields)) do (i, field)
+            get_sampling_sums(multi.experiments[i], x, getproperty(ps, field), getproperty(st, field))
+        end
+    )
+end
+
+function sampling_sums(multi::MultiExperimentLayer{false}, x, ps, st::NamedTuple{fields}) where {fields}
+    return reduce(
+        vcat, map(enumerate(fields)) do (i, field)
+            sampling_sums(multi.experiments, x, getproperty(ps, field), getproperty(st, field))
+        end
+    )
+end
+
+function sampling_sums!(res::AbstractVector, multi::MultiExperimentLayer{false}, x, ps, st::NamedTuple{fields}) where {fields}
+    n_obs = size(multi.experiments.measurements.observed.local_information_gain.getters, 1)
+    for (i, field) in enumerate(fields)
+        sampling_sums!(view(res, ((i - 1) * n_obs + 1):(i * n_obs)), multi.experiments, x, getproperty(ps, field), getproperty(st, field))
+    end
+    return
+end
+
+function sampling_sums!(res::AbstractVector, multi::MultiExperimentLayer{true}, x, ps, st::NamedTuple{fields}) where {fields}
+    current_start = 0
+    for (i, field) in enumerate(fields)
+        n_obs = size(multi.experiments[i].measurements.observed.local_information_gain.getters, 1)
+        sampling_sums!(view(res, (current_start+1):(current_start+n_obs)), multi.experiments[i], x, getproperty(ps, field), getproperty(st, field))
+        current_start += n_obs
+    end
+    return
+end
+
+Corleone.get_number_of_shooting_constraints(multi::MultiExperimentLayer{false}) = multi.n_exp * Corleone.get_number_of_shooting_constraints(multi.experiments)
+Corleone.get_number_of_shooting_constraints(multi::MultiExperimentLayer{true}) = sum(map(Corleone.get_number_of_shooting_constraints, multi.experiments))
+n_observed(layer::MultiExperimentLayer{false}) = layer.n_exp * n_observed(layer.experiments)
+n_observed(layer::MultiExperimentLayer{true}) = sum(map(n_observed, layer.experiments))
+
 #=
-n_observed(layer::MultiExperimentLayer{<:Any, <:Any, false}) = layer.n_exp * length(layer.layers.sampling_indices)
-n_observed(layer::MultiExperimentLayer{<:Any, <:Any, true}) = sum(map(x -> length(x.sampling_indices), layer.layers))
-Corleone.get_number_of_shooting_constraints(multi::MultiExperimentLayer{<:Any, <:Any, false, <:MultipleShootingLayer}) = multi.n_exp * Corleone.get_number_of_shooting_constraints(multi.layers)
-Corleone.get_number_of_shooting_constraints(multi::MultiExperimentLayer{<:Any, <:Any, true, <:MultipleShootingLayer}) = sum(map(Corleone.get_number_of_shooting_constraints, multi.layers))
-Corleone.get_number_of_shooting_constraints(multi::MultiExperimentLayer{<:Any, <:Any, <:Any, <:SingleShootingLayer}) = 0
 
 function update_fim(oed::MultiExperimentLayer{DISCRETE, FIXED, <:Any, <:SingleShootingLayer}, experiments, st::NamedTuple) where {DISCRETE, FIXED}
     FIM = sum(
@@ -250,13 +283,7 @@ function update_fim(oed::MultiExperimentLayer{DISCRETE, FIXED, <:Any, <:Multiple
     return merge(st, (; experiment_1 = st1))
 end
 
-function get_sampling_sums(multi::MultiExperimentLayer{<:Any, <:Any, true}, x, ps, st::NamedTuple{fields}) where {fields}
-    return reduce(
-        vcat, map(enumerate(fields)) do (i, field)
-            get_sampling_sums(multi.layers[i], x, getproperty(ps, field), getproperty(st, field))
-        end
-    )
-end
+
 
 function get_sampling_sums!(res::AbstractVector, multi::MultiExperimentLayer{<:Any, <:Any, true}, x, ps, st::NamedTuple{fields}) where {fields}
     n_obs = cumsum(vcat(0, [length(x.sampling_indices) for x in multi.layers]))
@@ -274,13 +301,6 @@ function get_sampling_sums(multi::MultiExperimentLayer{<:Any, <:Any, false}, x, 
     )
 end
 
-function get_sampling_sums!(res::AbstractVector, multi::MultiExperimentLayer{<:Any, <:Any, false}, x, ps, st::NamedTuple{fields}) where {fields}
-    n_obs = length(multi.layers.sampling_indices)
-    for (i, field) in enumerate(fields)
-        get_sampling_sums!(view(res, ((i - 1) * n_obs + 1):(i * n_obs)), multi.layers, x, getproperty(ps, field), getproperty(st, field))
-    end
-    return
-end
 
 function __fisher_information(multi::MultiExperimentLayer{<:Any, true, false}, trajs::Vector{<:Trajectory}, ps, st::NamedTuple{fields}) where {fields}
     return sum(

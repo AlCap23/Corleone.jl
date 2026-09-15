@@ -160,7 +160,6 @@ function __continuous_fisher_information(oed::OEDLayer, traj::Trajectory)
     (; observed, continuous) = measurements
     isempty(continuous) && return zeros(eltype(oed.augmented_prob.u0), get_size_F(oed))
     F_cont = last.(oed.measurements.observed.fisher(traj))
-    @info F_cont
     return F_cont
 end
 
@@ -178,7 +177,6 @@ function __discrete_fisher_information(oed::OEDLayer, traj::Trajectory)
         F_disc = [x' * x for x in sol_hx_G]
         sum(sol_w .* F_disc)
     end)
-    @info F_discrete
     return F_discrete
 end
 
@@ -199,12 +197,41 @@ function discrete_sampling_sums(oed::OEDLayer, x, ps, st::NamedTuple)
     (; measurements,) = oed
     (; discrete,) = measurements
 
+    ctrl = ps.controls.controls
+
     res = zeros(eltype(first(first(ps.controls.controls))), size(discrete, 1))
-    map(enumerate(discrete)) do (i, sampling_i)
-        w_i = reduce(vcat, getfield(ps.controls.controls, sampling_i.id))
-        res[i] = sum(w_i[2:end])
+    @inbounds for i in eachindex(discrete)
+        vecs = getproperty(ctrl, discrete[i].id)
+        s = zero(eltype(first(first(ctrl))))
+        for v in vecs
+            start = (v === first(vecs)) ? 2 : 1
+            @inbounds for j=start:length(v)
+                s += v[j]
+            end
+        end
+        res[i] = s
+
     end
     return res
+end
+
+function discrete_sampling_sums!(res, oed::OEDLayer, x, ps, st::NamedTuple)
+    (; measurements,) = oed
+    (; discrete,) = measurements
+    ctrl = ps.controls.controls
+
+    @inbounds for i in eachindex(discrete)
+        vecs = getproperty(ctrl, discrete[i].id)
+        s = zero(eltype(first(first(ctrl))))
+        for v in vecs
+            start = (v === first(vecs)) ? 2 : 1
+            @inbounds for j=start:length(v)
+                s += v[j]
+            end
+        end
+        res[i] = s
+    end
+    return
 end
 
 function continuous_sampling_sums(oed::OEDLayer, x, ps, st::NamedTuple)
@@ -213,11 +240,26 @@ function continuous_sampling_sums(oed::OEDLayer, x, ps, st::NamedTuple)
 
     sol, _ = oed(x, ps, st)
     res = zeros(eltype(first(first(ps.controls.controls))), size(continuous, 1))
-    map(enumerate(continuous)) do (i, sampling_i)
-        w_i = sol[sampling_i.id]
-        res[i] = sum(diff(sol.t) .* w_i[1:end-1])
+    dt = diff(sol.t)
+    @inbounds for i in eachindex(continuous)
+        w_i = sol[continuous[i].id]
+        res[i] = dot(dt, @view w_i[1:end-1])
     end
     return res
+end
+
+function continuous_sampling_sums!(res, oed::OEDLayer, x, ps, st::NamedTuple)
+    (; measurements,) = oed
+    (; continuous,) = measurements
+
+    sol, _ = oed(x, ps, st)
+    dt = diff(sol.t)
+
+    @inbounds for i in eachindex(continuous)
+        w_i = sol[continuous[i].id]
+        res[i] = dot(dt, @view w_i[1:end-1])
+    end
+    return
 end
 
 function sampling_sums(oed::OEDLayer, x, ps, st)
@@ -225,8 +267,19 @@ function sampling_sums(oed::OEDLayer, x, ps, st)
 end
 
 function sampling_sums!(res, oed::OEDLayer, x, ps, st)
-    res .= sampling_sums(oed, x, ps, st)
+    n_cont, n_disc = length(oed.measurements.continuous), length(oed.measurements.discrete)
+    if n_cont > 0
+        continuous_sampling_sums!(view(res, (1:n_cont)), oed, x, ps, st)
+    end
+    if n_disc > 0
+        discrete_sampling_sums!(view(res, (n_cont+1:n_cont+n_disc)), oed, x, ps, st)
+    end
+    return
 end
+
+Corleone.get_number_of_shooting_constraints(oed::OEDLayer) = Corleone.get_number_of_shooting_constraints(oed.shooting)
+n_observed(layer::OEDLayer) = length(layer.measurements.discrete) + length(layer.measurements.continuous)
+
 #=
 """
 $(TYPEDEF)
@@ -399,8 +452,7 @@ function update_fim(oed::OEDLayer{<:Any, SAMPLED, FIXED, <:MultipleShootingLayer
 end
 
 n_observed(layer::OEDLayer) = length(layer.sampling_indices)
-Corleone.get_number_of_shooting_constraints(oed::OEDLayer{<:Any, <:Any, <:Any, <:MultipleShootingLayer}) = Corleone.get_number_of_shooting_constraints(oed.layer)
-Corleone.get_number_of_shooting_constraints(oed::OEDLayer{<:Any, <:Any, <:Any, <:SingleShootingLayer}) = 0
+
 Corleone.get_bounds(oed::OEDLayer; kwargs...) = Corleone.get_bounds(oed.layer; kwargs...)
 
 get_size_F(oed::OEDLayer{true, true, <:Any}) = begin
