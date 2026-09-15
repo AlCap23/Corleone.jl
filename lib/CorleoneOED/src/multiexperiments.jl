@@ -217,7 +217,7 @@ end
 function sampling_sums(multi::MultiExperimentLayer{true}, x, ps, st::NamedTuple{fields}) where {fields}
     return reduce(
         vcat, map(enumerate(fields)) do (i, field)
-            get_sampling_sums(multi.experiments[i], x, getproperty(ps, field), getproperty(st, field))
+            sampling_sums(multi.experiments[i], x, getproperty(ps, field), getproperty(st, field))
         end
     )
 end
