@@ -128,3 +128,132 @@ end
         @test res[1] == sum(traj[:y]) * 5.0
     end
 end
+
+# ---------------------------------------------------------------------------
+# process_expression – rewrites comparison expressions into (expr, lb, ub)
+# ---------------------------------------------------------------------------
+
+@testset "process_expression" begin
+    @testset "bare Symbol: unconstrained" begin
+        expr, lb, ub = Corleone.process_expression(:x)
+        @test expr === :x
+        @test lb == -Inf
+        @test ub == Inf
+    end
+
+    @testset "== rewrites to (lhs - rhs, 0, 0)" begin
+        # process_expression builds Expr(:call, -, args...) with the *function*
+        # `-` spliced in directly (not the symbol :-), so compare against the
+        # same construction rather than quoted `a - b` syntax.
+        expr, lb, ub = Corleone.process_expression(:(x(3.0) - 1.0 == 0))
+        @test expr == Expr(:call, -, :(x(3.0) - 1.0), 0)
+        @test lb == 0.0
+        @test ub == 0.0
+    end
+
+    @testset "<= rewrites to (lhs - rhs, -Inf, 0)" begin
+        expr, lb, ub = Corleone.process_expression(:(x(3.0) <= 1.0))
+        @test expr == Expr(:call, -, :(x(3.0)), 1.0)
+        @test lb == -Inf
+        @test ub == 0.0
+    end
+
+    @testset ">= rewrites to (lhs - rhs, -Inf, 0)" begin
+        # Same bound pair as <=: process_expression does not flip the sense for >=.
+        expr, lb, ub = Corleone.process_expression(:(x(5.0) * y(5.0) >= 3.0))
+        @test expr == Expr(:call, -, :(x(5.0) * y(5.0)), 3.0)
+        @test lb == -Inf
+        @test ub == 0.0
+    end
+
+    @testset "other Expr (e.g. a bare objective call) passes through unconstrained" begin
+        expr, lb, ub = Corleone.process_expression(:(L(12.0)))
+        @test expr == :(L(12.0))
+        @test lb == -Inf
+        @test ub == Inf
+    end
+
+    @testset "vector of expressions processes each independently" begin
+        exprs, lb, ub = Corleone.process_expression(
+            [:(x(3.0) - 1.0 == 0), :(x(5.0) * y(5.0) >= 3.0)]
+        )
+        @test length(exprs) == 2
+        @test lb == [0.0, -Inf]
+        @test ub == [0.0, 0.0]
+    end
+end
+
+# ---------------------------------------------------------------------------
+# DynamicFunctionLayer(layer::ShootingLayer, expr...) – parses symbolic
+# expressions over the shooting layer's system into (foop, fiip, state).
+# ---------------------------------------------------------------------------
+
+function _shooting_layer_fc(; n = 6)
+    prob = ControlledLotka.generate()
+    cgrid = collect(LinRange(0.0, 12.0, n))
+    pc1 = PiecewiseParameter(:u1, copy(cgrid))
+    pc2 = PiecewiseParameter(:u2, copy(cgrid))
+    layer = ShootingLayer(prob, Symbol[], pc1, pc2; algorithm = Tsit5())
+    return prob, layer
+end
+
+@testset "DynamicFunctionLayer(layer::ShootingLayer, expr...)" begin
+    @testset "single unconstrained expression: empty ps, saveat/lb/ub in state" begin
+        de_prob, shooting = _shooting_layer_fc()
+        objective = DynamicFunctionLayer(shooting, :(x(3.0) + y(6.0)); rng = rng)
+
+        ps, st = LuxCore.setup(rng, objective)
+        @test ps == (;)
+        @test st.lb == [-Inf]
+        @test st.ub == [Inf]
+        @test 3.0 in st.saveat
+        @test 6.0 in st.saveat
+        @test issorted(st.saveat)
+        @test allunique(st.saveat)
+
+        de = remake(de_prob, saveat = st.saveat)
+        ps_shoot, st_shoot = LuxCore.setup(rng, shooting)
+        traj, _ = shooting(de, ps_shoot, st_shoot)
+
+        idx3 = findfirst(==(3.0), st.saveat)
+        idx6 = findfirst(==(6.0), st.saveat)
+        expected = traj[:x][idx3] + traj[:y][idx6]
+
+        out, _ = objective(traj, ps, st)
+        @test out == expected
+
+        res = zeros(1)
+        res′, _ = objective(res, traj, ps, st)
+        @test res′ === res
+        @test res[1] == expected
+    end
+
+    @testset "multiple comparison expressions: lb/ub match process_expression, output is a stacked vector" begin
+        de_prob, shooting = _shooting_layer_fc()
+        constraints = DynamicFunctionLayer(
+            shooting, :(x(3.0) - 1.0 == 0), :(x(5.0) * y(5.0) >= 3.0); rng = rng
+        )
+
+        ps, st = LuxCore.setup(rng, constraints)
+        @test st.lb == [0.0, -Inf]
+        @test st.ub == [0.0, 0.0]
+        @test 3.0 in st.saveat
+        @test 5.0 in st.saveat
+
+        de = remake(de_prob, saveat = st.saveat)
+        ps_shoot, st_shoot = LuxCore.setup(rng, shooting)
+        traj, _ = shooting(de, ps_shoot, st_shoot)
+
+        idx3 = findfirst(==(3.0), st.saveat)
+        idx5 = findfirst(==(5.0), st.saveat)
+        expected = [traj[:x][idx3] - 1.0, traj[:x][idx5] * traj[:y][idx5] - 3.0]
+
+        out, _ = constraints(traj, ps, st)
+        @test out == expected
+
+        res = zeros(2)
+        res′, _ = constraints(res, traj, ps, st)
+        @test res′ === res
+        @test res == expected
+    end
+end

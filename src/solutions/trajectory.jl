@@ -96,28 +96,32 @@ function Base.getindex(traj::Trajectory, i)
     return eltype(first(first(traj.segments).segments).u)[]
 end
 
+n_shooting_constraints(::Trajectory{1}) = 0 
+n_shooting_constraints(t::Trajectory{N}) where N = sum(t.segments) do seg
+    n_shooting_constraints(seg)
+end 
+
 function shooting_constraints(trajectory::Trajectory{1})
     return eltype(first(first(trajectory.segments).segments).sol.u[1])[]
 end
 
-function shooting_constraints(trajectory::Trajectory{N}) where {N}
-    T = eltype(first(first(trajectory.segments).segments).sol.u[1])
-    n_states = length(first(minimal_state_values(first(trajectory.segments))))
-    res = Vector{T}(undef, (N - 1) * n_states)
-    shooting_constraints!(res, trajectory)
+function shooting_constraints!(res, ::Trajectory{1})
     return res
 end
 
-function shooting_constraints!(res::AbstractVector, trajectory::Trajectory{N}) where {N}
-    N == 1 && return res
-    n_states = length(first(minimal_state_values(first(trajectory.segments))))
-    for i in 2:N
-        prev_end = minimal_state_values(trajectory.segments[i - 1])[end]
-        curr_start = minimal_state_values(trajectory.segments[i])[begin]
-        offset = (i - 2) * n_states
-        for j in 1:n_states
-            res[offset + j] = curr_start[j] - prev_end[j]
-        end
+function shooting_constraints(trajectory::Trajectory{N}) where {N}
+    return reduce(vcat, map(zip(Base.front(trajectory.segments), Base.tail(trajectory.segments))) do (a,b)
+        shooting_constraints(a, b)
+    end)
+end
+
+function shooting_constraints!(res::AbstractVector, trajectory::Trajectory)
+    offset = 0 
+    (; segments) = trajectory
+    foreach(zip(Base.front(segments), Base.tail(segments))) do (a, b)
+        N = n_shooting_constraints(b)
+        @views shooting_constraints!(res[offset .+ (1:N)], a, b)
+        offset += N
     end
     return res
 end
