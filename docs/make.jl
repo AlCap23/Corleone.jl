@@ -1,7 +1,14 @@
 using Pkg
 
-# OptimalControlBenchmarks is bundled with Corleone and is not registry-resolvable.
-Pkg.develop(PackageSpec(path = joinpath(@__DIR__, "..", "lib", "OptimalControlBenchmarks")))
+# These packages are bundled in this repository. Develop the local sources so that
+# the manual always documents the same Corleone and sublibrary revisions.
+Pkg.develop(
+    [
+        PackageSpec(path = joinpath(@__DIR__, "..")),
+        PackageSpec(path = joinpath(@__DIR__, "..", "lib", "CorleoneOED")),
+        PackageSpec(path = joinpath(@__DIR__, "..", "lib", "OptimalControlBenchmarks")),
+    ]
+)
 
 using Documenter, Corleone, CorleoneOED, OptimalControlBenchmarks
 using DocumenterInterLinks
@@ -27,6 +34,9 @@ makedocs(
         canonical = "https://docs.sciml.ai/Corleone/stable/",
         size_threshold = 1_500_000,  # bytes
     ),
+    doctest = true,
+    checkdocs = :exports,
+    linkcheck = true,
     #DocumenterVitepress.MarkdownVitepress(
     #    repo = "github.com/SciML/Corleone.jl",
     #    devbranch = "main", # or master, trunk, ...
@@ -54,7 +64,6 @@ makedocs(
         #],
         # "API Reference" => "api.md",
     ],
-    checkdocs = :none,
     remotes = nothing,
     plugins = [links, bib],
 )

@@ -1,7 +1,7 @@
 name = "CorleoneOED"
 uuid = "6590a4b1-d036-41fe-a5b4-03a980244101"
 authors = ["Christoph Plate", "Carl Julius Martensen", "Sebastian Sager"]
-version = "0.0.7"
+version = "1.0.0"
 
 [deps]
 Corleone = "2751e0db-33e9-4374-b36d-b7219e1e6b40"
@@ -22,7 +22,11 @@ Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
+<<<<<<< HEAD
 Corleone = "0.0.5, 0.0.6"
+=======
+Corleone = "0.0.6, 0.0.7, 0.0.8, 1"
+>>>>>>> sciml/main
 ComponentArrays = "0.15"
 DocStringExtensions = "0.9.3"
 ForwardDiff = "1.3"
@@ -30,18 +34,18 @@ Ipopt = "1"
 LinearAlgebra = "1"
 LuxCore = "1.4"
 Optimization = "5"
-OptimizationMOI = "1"
-OrdinaryDiffEqTsit5 = "1.5, 2"
+OptimizationMOI = "1.4"
+OrdinaryDiffEqTsit5 = "2"
 Pkg = "1"
 Random = "1"
 Reexport = "1.2.2"
 SafeTestsets = "0.1"
-SciMLBase = "2.141.0, 3"
+SciMLBase = "3"
 SciMLStructures = "1.7"
-SciMLTesting = "2.4"
+SciMLTesting = "2.6"
 StableRNGs = "1"
 SymbolicIndexingInterface = "0.3.43"
-Symbolics = "7"
+Symbolics = "7.37"
 Test = "1"
 Zygote = "0.7"
 julia = "1.10"
