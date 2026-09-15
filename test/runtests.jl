@@ -29,13 +29,6 @@ else
             @safetestset "Solutions" begin
                 include("core/solutions.jl")
             end
-<<<<<<< HEAD
-            @safetestset "Layers" begin
-                include("core/layers.jl")
-            end
-            return @safetestset "Parser" begin
-                include("core/parser.jl")
-=======
             @safetestset "Precompile workload" begin
                 include("core/precompile_workload.jl")
             end
@@ -44,7 +37,6 @@ else
             end
             return @safetestset "Multiple shooting" begin
                 include("core/multiple_shooting.jl")
->>>>>>> sciml/main
             end
         end,
         groups = Dict(

@@ -22,11 +22,7 @@ Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-<<<<<<< HEAD
-Corleone = "0.0.5, 0.0.6"
-=======
 Corleone = "0.0.6, 0.0.7, 0.0.8, 1"
->>>>>>> sciml/main
 ComponentArrays = "0.15"
 DocStringExtensions = "0.9.3"
 ForwardDiff = "1.3"

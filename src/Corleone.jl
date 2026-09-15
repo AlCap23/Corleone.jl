@@ -19,9 +19,8 @@ using Functors
 
 include("solutions/Solutions.jl")
 
-<<<<<<< HEAD
 include("layers/Layers.jl")
-=======
+
 """
     get_block_structure(layer; kwargs...)
 
@@ -44,7 +43,6 @@ to_val(::T, val) where {T <: Number} = T(val)
 to_val(x::AbstractArray{T}, val) where {T <: Number} = T(val) .+ zero(x)
 get_lower_bound(layer::AbstractLuxLayer) = Functors.fmapstructure(Base.Fix2(to_val, -Inf), LuxCore.initialparameters(Random.default_rng(), layer))
 get_upper_bound(layer::AbstractLuxLayer) = Functors.fmapstructure(Base.Fix2(to_val, Inf), LuxCore.initialparameters(Random.default_rng(), layer))
->>>>>>> sciml/main
 
 # Bridge: add Trajectory dispatch to Corleone.shooting_constraints (which was shadowed
 # by the Layers definition) so both the layer and trajectory APIs share one name.
