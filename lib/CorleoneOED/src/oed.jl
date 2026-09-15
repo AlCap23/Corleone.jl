@@ -17,9 +17,9 @@ function (w::WeightedObservation)(controls::AbstractVector{T}, G::AbstractVector
 end
 =#
 
-abstract type Measurement end
+abstract type AbstractMeasurement end
 
-@concrete struct DiscreteMeasurement <: Measurement
+@concrete struct DiscreteMeasurement <: AbstractMeasurement
     "Measurement identifier"
     id 
     "Discrete measurement points"
@@ -28,7 +28,7 @@ abstract type Measurement end
     observed
 end
 
-@concrete struct ContinuousMeasurement <: Measurement 
+@concrete struct ContinuousMeasurement <: AbstractMeasurement 
     "Measurement identifier"
     id
     "Breakpoints of continuous measurement grid"
@@ -71,7 +71,7 @@ function OEDLayer(
     algorithm::SciMLBase.AbstractDEAlgorithm,
     ensemble_algorithm::SciMLBase.EnsembleAlgorithm = EnsembleSerial(),
     tspan = problem.tspan,
-    measurements = Measurement[],
+    measurements = AbstractMeasurement[],
     kwargs...
 )
 

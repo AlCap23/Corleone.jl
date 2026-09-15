@@ -18,7 +18,7 @@ include("augmentation.jl")
 
 # TODO Docs
 include("oed.jl")
-export OEDLayer, Measurement, DiscreteMeasurement, ContinuousMeasurement
+export OEDLayer, AbstractMeasurement, DiscreteMeasurement, ContinuousMeasurement
 #export fisher_information, observed_equations, sensitivities
 #export local_information_gain, global_information_gain
 
