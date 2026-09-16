@@ -1,6 +1,7 @@
 module OptimalControlBenchmarks
 
 using ModelingToolkit
+using DocStringExtensions
 using ModelingToolkit: t_nounits as t, D_nounits as D
 using ModelingToolkit: inputs
 using CairoMakie

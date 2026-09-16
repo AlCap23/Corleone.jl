@@ -37,8 +37,8 @@ function Base.show(io::IO, oed::MultiExperimentLayer{DISCRETE, FIXED, SPLIT}) wh
         )
         [
             print(
-                    io, "Experiment $i considers parameters: $param." * (i == length(params.original) ? "" : "\n")
-                ) for (i, param) in enumerate(params.original)
+                io, "Experiment $i considers parameters: $param." * (i == length(params.original) ? "" : "\n")
+            ) for (i, param) in enumerate(params.original)
         ]
     end
 end
