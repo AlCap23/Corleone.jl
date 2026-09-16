@@ -293,7 +293,7 @@ function build_new_system(prob::DAEProblem, config; control_indices = Int64[], k
     _du0 = foop(du0, u0, prob.p, 0.0)
     du0 = vcat(prob.du0, _du0[(size(prob.du0, 1) + 1):end])
 
-    diff_vars = vcat(prob.differential_vars, ones(Bool, size(u0,1)-size(prob.differential_vars,1)))
+    diff_vars = vcat(prob.differential_vars, ones(Bool, size(u0, 1) - size(prob.differential_vars, 1)))
     defaults = Dict(vcat(Symbol.(vars), Symbol.(parameters)) .=> vcat(u0, p0))
     newsys = SymbolCache(
         Symbol.(vars), Symbol.(parameters), independent_vars;
