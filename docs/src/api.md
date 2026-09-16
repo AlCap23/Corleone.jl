@@ -17,6 +17,25 @@ Corleone.hybrid_initialization
 Corleone.CorleoneDynamicOptProblem
 ```
 
+### Developer interface
+
+These hooks are the contract used by CorleoneOED and by extensions that add new
+shooting-layer wrappers. They are documented for package developers; ordinary users
+should prefer the exported constructors and layer methods above.
+
+```@docs
+Corleone.get_block_structure
+Corleone.get_bounds
+Corleone.get_controls
+Corleone.get_number_of_shooting_constraints
+Corleone.get_problem
+Corleone.get_timegrid
+Corleone.get_tspan
+Corleone.get_tunable
+Corleone.shooting_constraints
+Corleone.shooting_constraints!
+```
+
 ## CorleoneOED
 
 ```@docs
@@ -27,6 +46,7 @@ CorleoneOED.sensitivities
 CorleoneOED.local_information_gain
 CorleoneOED.global_information_gain
 CorleoneOED.MultiExperimentLayer
+CorleoneOED.AbstractCriterion
 CorleoneOED.ACriterion
 CorleoneOED.DCriterion
 CorleoneOED.ECriterion
@@ -40,4 +60,6 @@ CorleoneOED.FisherDCriterion
 ```@docs
 OptimalControlBenchmarks.load_benchmarks
 OptimalControlBenchmarks.run_all
+OptimalControlBenchmarks.OptimalControlBenchmark
+OptimalControlBenchmarks.BenchmarkGrids
 ```

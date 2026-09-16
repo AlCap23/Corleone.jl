@@ -22,9 +22,12 @@ withenv("GROUP" => GROUP) do
             @safetestset "Rober DAE" begin
                 include("core/rober.jl")
             end
-            #return @safetestset "Lotka Volterra SVD" begin
-            #    include("core/lotka_oed_svd.jl")
-            #end
+            @safetestset "Generic criterion interface" begin
+                include("core/interface_contracts.jl")
+            end
+            return @safetestset "Lotka Volterra SVD" begin
+                include("core/lotka_oed_svd.jl")
+            end
         end,
         qa = (; env = joinpath(@__DIR__, "qa"), body = joinpath(@__DIR__, "qa", "qa.jl")),
     )

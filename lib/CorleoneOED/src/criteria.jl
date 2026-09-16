@@ -1,32 +1,52 @@
-abstract type AbstractCriterion end
 """
 $(TYPEDEF)
-Implements the ACriterion, i.e., ``\\textrm{tr}(F^{-1})\``.
+
+Interface for an optimal-design criterion.
+
+Concrete criteria must implement `(::MyCriterion)(F::Symmetric)` and return a scalar
+objective from a Fisher information matrix. The generic layer method calls
+`fisher_information(layer, x, ps, st)` and returns `(value, st)` while preserving the
+updated layer state. Criteria are pure with respect to the matrix input and must not
+mutate the layer state.
+
+# Example
+```julia
+struct TraceCriterion <: AbstractCriterion end
+(::TraceCriterion)(F::Symmetric) = tr(F)
+```
+"""
+abstract type AbstractCriterion end
+
+"""
+$(TYPEDEF)
+Minimizes ``\\operatorname{tr}(F^{-1})``. This is an A-optimality criterion and is
+defined for a nonsingular symmetric Fisher information matrix.
 """
 struct ACriterion <: AbstractCriterion end
 """
 $(TYPEDEF)
-Implements the DCriterion, i.e., ``\\det(F^{-1})\``.
+Minimizes ``\\det(F^{-1})`` for a nonsingular symmetric Fisher information matrix.
 """
 struct DCriterion <: AbstractCriterion end
 """
 $(TYPEDEF)
-Implements the ECriterion, i.e., ``\\max\\{\\lambda: \\lambda \\textrm{ is eigenvalue of } F^{-1}\\}\``.
+Minimizes the largest eigenvalue of ``F^{-1}`` for a symmetric Fisher information
+matrix.
 """
 struct ECriterion <: AbstractCriterion end
 """
 $(TYPEDEF)
-Implements the FisherACriterion, i.e., ``-\\textrm{tr}(F)\``
+Maximizes ``\\operatorname{tr}(F)`` by minimizing its negative.
 """
 struct FisherACriterion <: AbstractCriterion end
 """
 $(TYPEDEF)
-Implements the FisherDCriterion, i.e., -``\\det(F)\``.
+Maximizes ``\\det(F)`` by minimizing its negative.
 """
 struct FisherDCriterion <: AbstractCriterion end
 """
 $(TYPEDEF)
-Implements the FisherECriterion, i.e., -``\\min\\{\\lambda: \\lambda \\textrm{ is eigenvalue of } F\\}\``.
+Maximizes the smallest eigenvalue of `F` by minimizing its negative.
 """
 struct FisherECriterion <: AbstractCriterion end
 
